@@ -1,0 +1,7 @@
+{
+  "extends": "@gnuxie/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "declarationDir": "dist",
+    "outDir": "dist"
+  }
+}

@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: 2024 Gnuxie <Gnuxie@protonmail.com>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Specifically use node LTS.
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - run: yarn install
+      - run: yarn build
+      - run: yarn lint
+  unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Specifically use node LTS.
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+      - run: yarn install
+      - run: yarn build
+      - run: yarn test
