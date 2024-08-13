@@ -34,7 +34,6 @@ export interface CommandDescription<
   Arguments extends unknown[] = unknown[],
 > {
   readonly executor: CommandExecutorFunction<Context, CommandResult, Arguments>;
-  readonly designator: string[];
   /** A short one line summary of what the command does to display alongside it's help */
   readonly summary: string;
   /** A longer description that goes into detail. */
