@@ -17,7 +17,10 @@
   },
   "private": false,
   "scripts": {
-    "lint": "yarn eslint src && yarn prettier --check src"
+    "build": "rm -rf dist && yarn tsc --project tsconfig.json",
+    "lint": "yarn eslint src && yarn prettier --check src",
+    "prepare": "yarn build",
+    "test": "yarn jest"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
