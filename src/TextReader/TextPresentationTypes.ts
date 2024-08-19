@@ -18,6 +18,7 @@ import {
 } from "@the-draupnir-project/matrix-basic-types";
 import { Presentation, definePresentationType } from "../Command/Presentation";
 import { Keyword } from "../Command/Keyword";
+import { TextPresentationRenderer } from "./TextPresentationRenderer";
 
 /**
  * If you are wondering why commands specify on presentation type and not
@@ -43,6 +44,13 @@ export function makeStringPresentation(string: string): Presentation<string> {
   });
 }
 
+TextPresentationRenderer.registerPresentationRenderer<string>(
+  StringPresentationType,
+  function (presentation) {
+    return presentation.object;
+  }
+);
+
 export const KeywordPresentationType = definePresentationType({
   name: "Keyword",
   validator: function (value): value is Keyword {
@@ -58,6 +66,13 @@ export function makeKeywordPresentation(
     presentationType: KeywordPresentationType,
   });
 }
+
+TextPresentationRenderer.registerPresentationRenderer<Keyword>(
+  KeywordPresentationType,
+  function (presetnation) {
+    return `--${presetnation.object.designator}`;
+  }
+);
 
 export const MatrixRoomReferencePresentationType = definePresentationType({
   name: "MatrixRoomReference",
@@ -75,6 +90,13 @@ export function makeMatrixRoomReferencePresentation(
   });
 }
 
+TextPresentationRenderer.registerPresentationRenderer<MatrixRoomReference>(
+  MatrixRoomReferencePresentationType,
+  function (presentation) {
+    return presentation.object.toPermalink();
+  }
+);
+
 export const MatrixUserIDPresentationType = definePresentationType({
   name: "MatrixUserID",
   validator: function (value): value is MatrixUserID {
@@ -90,6 +112,13 @@ export function makeMatrixUserIDPresentation(
     presentationType: MatrixUserIDPresentationType,
   });
 }
+
+TextPresentationRenderer.registerPresentationRenderer<MatrixUserID>(
+  MatrixUserIDPresentationType,
+  function (presentation) {
+    return presentation.object.toString();
+  }
+);
 
 export const MatrixEventReferencePresentationType = definePresentationType({
   name: "MatrixEventReference",
@@ -109,3 +138,10 @@ export function makeMatrixEventReferencePresentation(
     presentationType: MatrixEventReferencePresentationType,
   });
 }
+
+TextPresentationRenderer.registerPresentationRenderer<MatrixEventReference>(
+  MatrixEventReferencePresentationType,
+  function (presentation) {
+    return `${presentation.object.reference.toPermalink()}/${presentation.object.eventID}`;
+  }
+);
