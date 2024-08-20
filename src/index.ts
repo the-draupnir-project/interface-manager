@@ -4,4 +4,5 @@
 
 export * from "./Command/index";
 export * from "./DeadDocument/index";
+export * from "./MatrixInterfaceAdaptor/index";
 export * from "./TextReader/index";
