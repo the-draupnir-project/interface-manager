@@ -37,8 +37,10 @@ export class StandardParsedKeywords implements ParsedKeywords {
       );
     }
     const value = this.keywords.get(keyword);
-    if (value !== undefined) {
+    if (value === true) {
       return value as ObjectType;
+    } else if (value !== undefined) {
+      return value.object as ObjectType;
     } else {
       return defaultValue;
     }

@@ -37,6 +37,6 @@ export interface CommandDescription<
   /** A short one line summary of what the command does to display alongside it's help */
   readonly summary: string;
   /** A longer description that goes into detail. */
-  readonly description?: string;
+  readonly description?: string | undefined;
   readonly parametersDescription: CommandParametersDescription;
 }
