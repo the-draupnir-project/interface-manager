@@ -23,15 +23,53 @@ export type CommandTableEntry = {
   subCommands?: Map<string, CommandTableEntry>;
   currentCommand?: CommandDescription;
   designator: string[];
+  sourceTable: CommandTable;
 };
 
-export class CommandTable {
+export type CommandTableImport = {
+  table: CommandTable;
+  baseDesignator: string[];
+};
+
+export interface CommandTable {
+  /**
+   * Can be used to render a help command with an index of all the commands.
+   * @returns All of the commands in this table.
+   */
+  getAllCommands(): CommandTableEntry[];
+
+  /**
+   * @returns Only the commands interned in this table, excludes imported commands.
+   */
+  getExportedCommands(): CommandTableEntry[];
+  getImportedTables(): CommandTableImport[];
+  findAMatchingCommand(
+    stream: PresentationArgumentStream
+  ): CommandDescription | undefined;
+  internCommand(
+    command: CommandDescription,
+    designator: string[]
+  ): CommandTable;
+  /**
+   * Import the commands from a different table into this one.
+   * @param baseDesignator A designator to use as a base for all of the table's
+   * commands before importing them. So for example, commands for the join wave
+   * short-circuit protection might add a base designator of ["join" "wave"].
+   * So the complete designator for a status command that the join wave short-circuit
+   * protection defined would be  ["join", "wave", "status"] in this table.
+   */
+  importTable(table: CommandTable, baseDesignator: string[]): void;
+}
+
+export class StandardCommandTable implements CommandTable {
+  private readonly exportedCommands = new Set<CommandTableEntry>();
   private readonly flattenedCommands = new Set<CommandTableEntry>();
   private readonly commands: CommandTableEntry = {
     designator: [],
+    sourceTable: this,
   };
   /** Imported tables are tables that "add commands" to this table. They are not sub commands. */
-  private readonly importedTables = new Set<CommandTable>();
+  private readonly importedTables = new Map<CommandTable, CommandTableImport>();
 
   constructor(public readonly name: string | symbol) {}
 
@@ -40,42 +78,40 @@ export class CommandTable {
    * @returns All of the commands in this table.
    */
   public getAllCommands(): CommandTableEntry[] {
-    const importedCommands = [...this.importedTables].reduce<
-      CommandTableEntry[]
-    >((acc, t) => [...acc, ...t.getAllCommands()], []);
-    return [...this.getExportedCommands(), ...importedCommands];
+    return [...this.flattenedCommands];
   }
 
   /**
    * @returns Only the commands interned in this table, excludes imported commands.
    */
   public getExportedCommands(): CommandTableEntry[] {
-    return [...this.flattenedCommands.values()];
+    return [...this.exportedCommands.values()];
   }
 
-  public getImportedTables(): CommandTable[] {
-    return [...this.importedTables];
+  public getImportedTables(): CommandTableImport[] {
+    return [...this.importedTables.values()];
   }
 
-  // We use the argument stream so that they can use stream.rest() to get the unconsumed arguments.
-  public findAnExportedMatchingCommand(stream: PresentationArgumentStream) {
+  private findAMatchingCommandEntry(
+    stream: PresentationArgumentStream
+  ): CommandTableEntry | undefined {
     const tableHelper = (
-      table: CommandTableEntry,
+      startingTableEntry: CommandTableEntry,
       argumentStream: PresentationArgumentStream
-    ): undefined | CommandDescription => {
+    ): undefined | CommandTableEntry => {
       const nextArgument = argumentStream.peekItem();
       if (
         nextArgument === undefined ||
         typeof nextArgument.object !== "string"
       ) {
         // Then they might be using something like "!mjolnir status"
-        return table.currentCommand;
+        return startingTableEntry;
       }
       stream.readItem(); // dispose of the argument.
-      const entry = table.subCommands?.get(nextArgument.object);
+      const entry = startingTableEntry.subCommands?.get(nextArgument.object);
       if (!entry) {
         // The reason there's no match is because this is the command arguments, rather than subcommand notation.
-        return table.currentCommand;
+        return startingTableEntry;
       } else {
         return tableHelper(entry, argumentStream);
       }
@@ -86,59 +122,62 @@ export class CommandTable {
   public findAMatchingCommand(
     stream: PresentationArgumentStream
   ): CommandDescription | undefined {
-    const possibleExportedCommand = stream.savingPositionIf({
-      // FIXME: we need to fix this upstream to return s as this and not StandardSuperCoolStream.
+    const commandTableEntry = stream.savingPositionIf({
       body: (s) =>
-        this.findAnExportedMatchingCommand(s as PresentationArgumentStream),
+        this.findAMatchingCommandEntry(s as PresentationArgumentStream),
       predicate: (command) => command === undefined,
     });
-    if (possibleExportedCommand) {
-      return possibleExportedCommand;
-    }
-    for (const table of this.importedTables.values()) {
-      const possibleCommand: CommandDescription | undefined =
-        stream.savingPositionIf<CommandDescription | undefined>({
-          body: (s) =>
-            table.findAMatchingCommand(s as PresentationArgumentStream),
-          predicate: (command) => command === undefined,
-        });
-      if (possibleCommand) {
-        return possibleCommand;
-      }
+    if (commandTableEntry) {
+      return commandTableEntry.currentCommand;
     }
     return undefined;
   }
 
-  public internCommand(command: CommandDescription, designator: string[]) {
-    const internCommandHelper = (
-      table: CommandTableEntry,
-      designator: string[]
-    ): void => {
-      const currentDesignator = designator.shift();
-      if (currentDesignator === undefined) {
-        if (table.currentCommand) {
-          throw new TypeError(
-            `There is already a command for ${JSON.stringify(designator)}`
-          );
-        }
-        table.currentCommand = command;
-        this.flattenedCommands.add(table);
-      } else {
-        if (table.subCommands === undefined) {
-          table.subCommands = new Map();
-        }
-        const nextLookupEntry =
-          table.subCommands.get(currentDesignator) ??
-          ((lookup: CommandTableEntry) => (
-            table.subCommands.set(currentDesignator, lookup), lookup
-          ))({ designator: [] });
-        internCommandHelper(nextLookupEntry, designator);
+  private internCommandHelper(
+    command: CommandDescription,
+    originalTable: CommandTable,
+    tableEntry: CommandTableEntry,
+    designator: string[]
+  ): void {
+    const currentDesignator = designator.shift();
+    if (currentDesignator === undefined) {
+      if (tableEntry.currentCommand) {
+        throw new TypeError(
+          `There is already a command for ${JSON.stringify(designator)}`
+        );
       }
-    };
-    internCommandHelper(this.commands, designator);
+      tableEntry.currentCommand = command;
+      if (originalTable === this) {
+        this.exportedCommands.add(tableEntry);
+      }
+      this.flattenedCommands.add(tableEntry);
+    } else {
+      if (tableEntry.subCommands === undefined) {
+        tableEntry.subCommands = new Map();
+      }
+      const nextLookupEntry =
+        tableEntry.subCommands.get(currentDesignator) ??
+        ((lookup: CommandTableEntry) => (
+          tableEntry.subCommands.set(currentDesignator, lookup), lookup
+        ))({ designator: [], sourceTable: this });
+      this.internCommandHelper(
+        command,
+        originalTable,
+        nextLookupEntry,
+        designator
+      );
+    }
   }
 
-  public importTable(table: CommandTable): void {
+  public internCommand(
+    command: CommandDescription,
+    designator: string[]
+  ): this {
+    this.internCommandHelper(command, this, this.commands, designator);
+    return this;
+  }
+
+  public importTable(table: CommandTable, baseDesignator: string[]): void {
     for (const commandTableEntry of table.getAllCommands()) {
       if (
         this.findAMatchingCommand(
@@ -152,6 +191,14 @@ export class CommandTable {
         );
       }
     }
-    this.importedTables.add(table);
+    this.importedTables.set(table, { table, baseDesignator });
+    for (const command of table.getAllCommands()) {
+      if (command.currentCommand !== undefined) {
+        this.internCommandHelper(command.currentCommand, table, this.commands, [
+          ...baseDesignator,
+          ...command.designator,
+        ]);
+      }
+    }
   }
 }
