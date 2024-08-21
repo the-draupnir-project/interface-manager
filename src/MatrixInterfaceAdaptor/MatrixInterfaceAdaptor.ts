@@ -7,8 +7,12 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { Ok, Result, isError } from "@gnuxie/typescript-result";
-import { Command, CommandDescription } from "../Command";
+import { Ok, Result, ResultError, isError } from "@gnuxie/typescript-result";
+import {
+  Command,
+  CommandDescription,
+  PresentationArgumentStream,
+} from "../Command";
 import { MatrixRendererDescription } from "./MatrixRendererDescription";
 import { DocumentNode } from "../DeadDocument";
 
@@ -16,6 +20,11 @@ export interface MatrixInterfaceAdaptor<MatrixEventContext> {
   invoke<CommandResult>(
     command: Command,
     eventContext: MatrixEventContext
+  ): Promise<Result<CommandResult>>;
+  parseAndInvoke<CommandResult>(
+    commandDescription: CommandDescription,
+    eventContext: MatrixEventContext,
+    stream: PresentationArgumentStream
   ): Promise<Result<CommandResult>>;
   registerRendererDescription(
     commandDescription: CommandDescription,
@@ -42,6 +51,15 @@ export type MatrixInterfaceEventsFromDeadDocument<
   document: DocumentNode
 ) => Promise<Result<void>>;
 
+export type MatrixInterfaceRendererFailedCB<
+  AdaptorContext,
+  MatrixEventContext,
+> = (
+  adaptorContext: AdaptorContext,
+  matrixEventContext: MatrixEventContext,
+  error: ResultError
+) => void;
+
 export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   implements MatrixInterfaceAdaptor<MatrixEventContext>
 {
@@ -58,6 +76,10 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     private readonly matrixEventsFromDeadDocument: MatrixInterfaceEventsFromDeadDocument<
       AdaptorContext,
       MatrixEventContext
+    >,
+    private readonly rendererFailedCB: MatrixInterfaceRendererFailedCB<
+      AdaptorContext,
+      MatrixEventContext
     >
   ) {
     // nothing to do.
@@ -66,18 +88,39 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     command: Command,
     matrixEventContext: MatrixEventContext
   ): Promise<Result<CommandResult>> {
-    const renderer = this.renderers.get(command.description);
-    if (renderer === undefined) {
-      throw new TypeError(
-        `There is no renderer defined for the command ${command.description.summary}`
-      );
-    }
+    const renderer = this.findRendererForCommandDescription(
+      command.description
+    );
     const commandResult = await command.description.executor(
       this.adaptorContext,
       command.keywords,
       ...command.immediateArguments,
       ...(command.rest ?? [])
     );
+    return (await this.runRenderersOnCommandResult(
+      commandResult,
+      renderer,
+      matrixEventContext
+    )) as Result<CommandResult>;
+  }
+
+  private findRendererForCommandDescription(
+    commandDescription: CommandDescription
+  ): MatrixRendererDescription {
+    const renderer = this.renderers.get(commandDescription);
+    if (renderer === undefined) {
+      throw new TypeError(
+        `There is no renderer defined for the command ${commandDescription.summary}`
+      );
+    }
+    return renderer;
+  }
+
+  private async runRenderersOnCommandResult(
+    commandResult: Result<unknown>,
+    renderer: MatrixRendererDescription,
+    matrixEventContext: MatrixEventContext
+  ): Promise<Result<unknown>> {
     const renderResults = await Promise.all([
       this.maybeRunDefaultRenderer(renderer, matrixEventContext, commandResult),
       this.maybeRunJSXRenderer(renderer, matrixEventContext, commandResult),
@@ -89,10 +132,14 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     ]);
     for (const result of renderResults) {
       if (isError(result)) {
-        return result;
+        this.rendererFailedCB(
+          this.adaptorContext,
+          matrixEventContext,
+          result.error
+        );
       }
     }
-    return commandResult as Result<CommandResult>;
+    return commandResult;
   }
 
   private async maybeRunDefaultRenderer(
@@ -146,11 +193,31 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
       return Ok(undefined);
     }
   }
-  registerRendererDescription(
+  public registerRendererDescription(
     commandDescription: CommandDescription,
     rendererDescription: MatrixRendererDescription
   ): this {
     this.renderers.set(commandDescription, rendererDescription);
     return this;
+  }
+
+  public async parseAndInvoke<CommandResult>(
+    commandDescription: CommandDescription,
+    eventContext: MatrixEventContext,
+    stream: PresentationArgumentStream
+  ): Promise<Result<CommandResult>> {
+    const renderer = this.findRendererForCommandDescription(commandDescription);
+    const parseResult = commandDescription.parametersDescription.parse(
+      commandDescription,
+      stream
+    );
+    if (isError(parseResult)) {
+      return (await this.runRenderersOnCommandResult(
+        parseResult,
+        renderer,
+        eventContext
+      )) as Result<CommandResult>;
+    }
+    return await this.invoke(parseResult.ok, eventContext);
   }
 }
