@@ -18,4 +18,6 @@ export interface Command<
   readonly immediateArguments: Arguments;
   readonly rest?: RestArguments[];
   readonly keywords: ParsedKeywords;
+  // The normalised designator that was used to invoke the command.
+  readonly designator: string[];
 }

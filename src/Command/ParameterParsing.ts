@@ -36,6 +36,7 @@ export type ParameterParseFunction<
   RestArguments extends unknown[] = unknown[],
 > = (
   command: CommandDescription,
+  designator: string[],
   stream: PresentationArgumentStream
 ) => Result<Command<Arguments, RestArguments>>;
 
@@ -60,6 +61,7 @@ export class StandardCommandParametersDescription
     RestArguments extends unknown[] = unknown[],
   >(
     command: CommandDescription<unknown, unknown, Arguments>,
+    designator: string[],
     stream: PresentationArgumentStream
   ): Result<Command<Arguments, RestArguments>> {
     const hasPrompted = false;
@@ -114,6 +116,7 @@ export class StandardCommandParametersDescription
       immediateArguments: immediateArguments.map((p) => p.object),
       keywords: keywordsParser.getKeywords(),
       rest: restResult.ok?.map((p) => p.object) ?? [],
+      designator,
     } as Command<Arguments, RestArguments>);
   }
 }

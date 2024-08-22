@@ -18,12 +18,21 @@ import { DocumentNode } from "../DeadDocument";
 import { AdaptorToCommandContextTranslator } from "./AdaptorToCommandContextTranslator";
 
 export interface MatrixInterfaceAdaptor<MatrixEventContext> {
+  /**
+   * Invoke the command object, running the command executor and then calling
+   * each of the configured renderers for the interface adaptor.
+   */
   invoke<CommandResult>(
     command: Command,
     eventContext: MatrixEventContext
   ): Promise<Result<CommandResult>>;
+  /**
+   * Parse the arguments to the command description and then call `invoke`.
+   * The commandDesignator is required so that we can produce a `Command` object.
+   */
   parseAndInvoke<CommandResult>(
     commandDescription: CommandDescription,
+    commandDesignator: string[],
     eventContext: MatrixEventContext,
     stream: PresentationArgumentStream
   ): Promise<Result<CommandResult>>;
@@ -210,12 +219,14 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
 
   public async parseAndInvoke<CommandResult>(
     commandDescription: CommandDescription,
+    commandDesignator: string[],
     eventContext: MatrixEventContext,
     stream: PresentationArgumentStream
   ): Promise<Result<CommandResult>> {
     const renderer = this.findRendererForCommandDescription(commandDescription);
     const parseResult = commandDescription.parametersDescription.parse(
       commandDescription,
+      commandDesignator,
       stream
     );
     if (isError(parseResult)) {

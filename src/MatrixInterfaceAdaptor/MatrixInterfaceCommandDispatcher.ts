@@ -107,8 +107,16 @@ export class StandardMatrixInterfaceCommandDispatcher<
       const stream = new StandardPresentationArgumentStream(normalisedCommand);
       const commandToUse =
         this.comandTable.findAMatchingCommand(stream) ?? this.helpCommand;
+      const normalisedDesignator = normalisedCommand
+        .slice(0, stream.getPosition())
+        .map((p) => p.object) as string[];
       void this.interfaceAdaptor
-        .parseAndInvoke(commandToUse, eventContext, stream)
+        .parseAndInvoke(
+          commandToUse,
+          normalisedDesignator,
+          eventContext,
+          stream
+        )
         .then(
           (result) => {
             if (isError(result)) {
