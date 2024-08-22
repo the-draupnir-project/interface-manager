@@ -15,6 +15,7 @@ import {
 } from "../Command";
 import { MatrixRendererDescription } from "./MatrixRendererDescription";
 import { DocumentNode } from "../DeadDocument";
+import { AdaptorToCommandContextTranslator } from "./AdaptorToCommandContextTranslator";
 
 export interface MatrixInterfaceAdaptor<MatrixEventContext> {
   invoke<CommandResult>(
@@ -69,6 +70,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   >();
   public constructor(
     private readonly adaptorContext: AdaptorContext,
+    private readonly adaptorToCommandContextTranslator: AdaptorToCommandContextTranslator<AdaptorContext>,
     private readonly defaultRenderer: MatrixInterfaceDefaultRenderer<
       AdaptorContext,
       MatrixEventContext
@@ -91,8 +93,13 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     const renderer = this.findRendererForCommandDescription(
       command.description
     );
+    const commandContext =
+      this.adaptorToCommandContextTranslator.translateContext(
+        command.description,
+        this.adaptorContext
+      );
     const commandResult = await command.description.executor(
-      this.adaptorContext,
+      commandContext,
       command.keywords,
       ...command.immediateArguments,
       ...(command.rest ?? [])
