@@ -12,6 +12,7 @@ import { MatrixInterfaceAdaptor } from "./MatrixInterfaceAdaptor";
 import {
   CommandDescription,
   CommandTable,
+  Presentation,
   StandardPresentationArgumentStream,
 } from "../Command";
 import { makeStringPresentation, readCommand } from "../TextReader";
@@ -34,6 +35,11 @@ export type CommandUncaughtErrorCB<AdaptorContext, MatrixEventContext> = (
   error: Error
 ) => void;
 export type CommandPrefixExtractor = (body: string) => string | undefined;
+export type LogCurentCommandCB<AdaptorContext, MatrixEventContext> = (
+  adaptorContext: AdaptorContext,
+  eventContext: MatrixEventContext,
+  commandParts: Presentation[]
+) => void;
 
 export class StandardMatrixInterfaceCommandDispatcher<
   AdaptorContext,
@@ -66,6 +72,10 @@ export class StandardMatrixInterfaceCommandDispatcher<
     private readonly commandUncaughtErrorCB: CommandUncaughtErrorCB<
       AdaptorContext,
       MatrixEventContext
+    >,
+    private readonly logCurentCommandCB: LogCurentCommandCB<
+      AdaptorContext,
+      MatrixEventContext
     >
   ) {
     // nothing to do.
@@ -75,46 +85,64 @@ export class StandardMatrixInterfaceCommandDispatcher<
     eventContext: MatrixEventContext,
     body: string
   ): void {
-    const readResult = readCommand(body);
-    const firstItem = readResult.at(0);
-    if (firstItem === undefined || typeof firstItem.object !== "string") {
-      return;
-    }
-    const prefix = this.prefixExtractor(firstItem.object);
-    if (prefix === undefined) {
-      return; // This message in reality probably is not a command.
-    }
-    const stream = new StandardPresentationArgumentStream([
-      makeStringPresentation(prefix),
-      ...readResult.slice(1),
-    ]);
-    const commandToUse =
-      this.comandTable.findAMatchingCommand(stream) ?? this.helpCommand;
-    void this.interfaceAdaptor
-      .parseAndInvoke(commandToUse, eventContext, stream)
-      .then(
-        (result) => {
-          if (isError(result)) {
-            this.commandFailedCB(
-              this.adaptorContext,
-              eventContext,
-              result.error
-            );
-          }
-        },
-        (error) => {
-          if (error instanceof Error) {
-            this.commandUncaughtErrorCB(
-              this.adaptorContext,
-              eventContext,
-              error
-            );
-          } else {
-            throw new TypeError(
-              `Something is throwing things that are not errors ${error}`
-            );
-          }
-        }
+    try {
+      const readResult = readCommand(body);
+      const firstItem = readResult.at(0);
+      if (firstItem === undefined || typeof firstItem.object !== "string") {
+        return;
+      }
+      const prefix = this.prefixExtractor(firstItem.object);
+      if (prefix === undefined) {
+        return; // This message in reality probably is not a command.
+      }
+      const normalisedCommand = [
+        makeStringPresentation(prefix),
+        ...readResult.slice(1),
+      ];
+      this.logCurentCommandCB(
+        this.adaptorContext,
+        eventContext,
+        normalisedCommand
       );
+      const stream = new StandardPresentationArgumentStream(normalisedCommand);
+      const commandToUse =
+        this.comandTable.findAMatchingCommand(stream) ?? this.helpCommand;
+      void this.interfaceAdaptor
+        .parseAndInvoke(commandToUse, eventContext, stream)
+        .then(
+          (result) => {
+            if (isError(result)) {
+              this.commandFailedCB(
+                this.adaptorContext,
+                eventContext,
+                result.error
+              );
+            }
+          },
+          (error) => {
+            if (error instanceof Error) {
+              this.commandUncaughtErrorCB(
+                this.adaptorContext,
+                eventContext,
+                error
+              );
+            } else {
+              throw new TypeError(
+                `Something is throwing things that are not errors ${error}`
+              );
+            }
+          }
+        );
+    } catch (error) {
+      if (error instanceof Error) {
+        this.commandUncaughtErrorCB(this.adaptorContext, eventContext, error);
+      } else {
+        throw new TypeError(
+          // I don't know what else we're going to do with it...
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          `Something is throwing things that are not errors ${error})}`
+        );
+      }
+    }
   }
 }
