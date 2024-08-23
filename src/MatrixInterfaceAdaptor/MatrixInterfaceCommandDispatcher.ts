@@ -14,6 +14,7 @@ import {
   CommandTable,
   Presentation,
   StandardPresentationArgumentStream,
+  makePartialCommand,
 } from "../Command";
 import { makeStringPresentation, readCommand } from "../TextReader";
 
@@ -112,10 +113,8 @@ export class StandardMatrixInterfaceCommandDispatcher<
         .map((p) => p.object) as string[];
       void this.interfaceAdaptor
         .parseAndInvoke(
-          commandToUse,
-          normalisedDesignator,
-          eventContext,
-          stream
+          makePartialCommand(stream, commandToUse, normalisedDesignator),
+          eventContext
         )
         .then(
           (result) => {

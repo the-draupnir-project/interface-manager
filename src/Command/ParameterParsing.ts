@@ -13,7 +13,6 @@
 // </text>
 
 import { Ok, Result, isError } from "@gnuxie/typescript-result";
-import { PresentationArgumentStream } from "./PresentationStream";
 import { ParameterDescription } from "./ParameterDescription";
 import {
   DescribeRestParameters,
@@ -25,8 +24,7 @@ import {
   KeywordParameterDescription,
   describeKeywordParameters,
 } from "./KeywordParameterDescription";
-import { CommandDescription } from "./CommandDescription";
-import { Command } from "./Command";
+import { CompleteCommand, PartialCommand } from "./Command";
 import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
 import { PresentationType } from "./Presentation";
@@ -35,10 +33,8 @@ export type ParameterParseFunction<
   Arguments extends unknown[] = unknown[],
   RestArguments extends unknown[] = unknown[],
 > = (
-  command: CommandDescription,
-  designator: string[],
-  stream: PresentationArgumentStream
-) => Result<Command<Arguments, RestArguments>>;
+  partialCommand: PartialCommand
+) => Result<CompleteCommand<Arguments, RestArguments>>;
 
 export interface CommandParametersDescription {
   readonly parse: ParameterParseFunction;
@@ -60,16 +56,15 @@ export class StandardCommandParametersDescription
     Arguments extends unknown[] = unknown[],
     RestArguments extends unknown[] = unknown[],
   >(
-    command: CommandDescription<unknown, unknown, Arguments>,
-    designator: string[],
-    stream: PresentationArgumentStream
-  ): Result<Command<Arguments, RestArguments>> {
+    partialCommand: PartialCommand
+  ): Result<CompleteCommand<Arguments, RestArguments>> {
     const hasPrompted = false;
     const keywordsParser = this.keywords.getParser();
+    const stream = partialCommand.stream;
     for (const parameter of this.descriptions) {
       // it eats any keywords at any point in the stream
       // as they can appear at any point technically.
-      const keywordResult = keywordsParser.parseKeywords(stream);
+      const keywordResult = keywordsParser.parseKeywords(partialCommand);
       if (isError(keywordResult)) {
         return keywordResult;
       }
@@ -80,13 +75,13 @@ export class StandardCommandParametersDescription
             `A prompt is required for the parameter ${parameter.name}`,
             {
               promptParameter: parameter,
-              stream,
+              partialCommand,
             }
           );
         } else {
           return ArgumentParseError.Result(
             `An argument for the parameter ${parameter.name} was expected but was not provided.`,
-            { parameter, stream }
+            { parameter, partialCommand }
           );
         }
       }
@@ -95,13 +90,17 @@ export class StandardCommandParametersDescription
           `Was expecting a match for the presentation type: ${parameter.acceptor.name} but got ${TextPresentationRenderer.render(nextItem)}.`,
           {
             parameter,
-            stream,
+            partialCommand,
           }
         );
       }
       stream.readItem(); // disopose of argument.
     }
-    const restResult = keywordsParser.parseRest(stream, hasPrompted, this.rest);
+    const restResult = keywordsParser.parseRest(
+      partialCommand,
+      hasPrompted,
+      this.rest
+    );
     if (isError(restResult)) {
       return restResult;
     }
@@ -112,12 +111,13 @@ export class StandardCommandParametersDescription
         ? stream.source
         : stream.source.slice(0, stream.source.indexOf(restResult.ok[0]));
     return Ok({
-      description: command,
+      description: partialCommand.description,
       immediateArguments: immediateArguments.map((p) => p.object),
       keywords: keywordsParser.getKeywords(),
       rest: restResult.ok?.map((p) => p.object) ?? [],
-      designator,
-    } as Command<Arguments, RestArguments>);
+      designator: partialCommand.designator,
+      isPartial: false,
+    } as CompleteCommand<Arguments, RestArguments>);
   }
 }
 

@@ -14,8 +14,8 @@ import { ParameterDescription } from "./ParameterDescription";
 import { ArgumentParseError, UnexpectedArgumentError } from "./ParseErrors";
 import { ParsedKeywords, StandardParsedKeywords } from "./ParsedKeywords";
 import { Presentation } from "./Presentation";
-import { PresentationArgumentStream } from "./PresentationStream";
 import { RestDescription } from "./RestParameterDescription";
+import { PartialCommand } from "./Command";
 
 /**
  * An extension of ParameterDescription, some keyword arguments
@@ -52,8 +52,9 @@ export class KeywordParser {
 
   private readKeywordAssociatedProperty(
     keyword: KeywordPropertyDescription,
-    stream: PresentationArgumentStream
+    partialCommand: PartialCommand
   ): Result<Presentation | true, ArgumentParseError> {
+    const stream = partialCommand.stream;
     const nextItem = stream.peekItem();
     if (!(nextItem?.object instanceof Keyword)) {
       if (keyword.acceptor.validator(nextItem)) {
@@ -63,7 +64,7 @@ export class KeywordParser {
           `Was expecting a match for the presentation type: ${keyword.acceptor.name} but got ${TextPresentationRenderer.render(nextItem)}.`,
           {
             parameter: keyword,
-            stream: stream,
+            partialCommand,
           }
         );
       }
@@ -71,7 +72,7 @@ export class KeywordParser {
       if (!keyword.isFlag) {
         return ArgumentParseError.Result(
           `An associated argument was not provided for the keyword ${keyword.name}.`,
-          { parameter: keyword, stream }
+          { parameter: keyword, partialCommand }
         );
       } else {
         return Ok(true);
@@ -79,7 +80,8 @@ export class KeywordParser {
     }
   }
 
-  public parseKeywords(stream: PresentationArgumentStream): Result<this> {
+  public parseKeywords(partialCommand: PartialCommand): Result<this> {
+    const stream = partialCommand.stream;
     while (stream.peekItem()?.object instanceof Keyword) {
       const item = stream.readItem() as Presentation<Keyword>;
       const description =
@@ -93,13 +95,13 @@ export class KeywordParser {
         } else {
           return UnexpectedArgumentError.Result(
             `Encountered unexpected keyword argument: ${item.object.designator}`,
-            { stream: stream }
+            { partialCommand }
           );
         }
       } else {
         const associatedPropertyResult = this.readKeywordAssociatedProperty(
           description,
-          stream
+          partialCommand
         );
         if (isError(associatedPropertyResult)) {
           return associatedPropertyResult;
@@ -112,14 +114,19 @@ export class KeywordParser {
   }
 
   public parseRest(
-    stream: PresentationArgumentStream,
+    partialCommand: PartialCommand,
     shouldPromptForRest = false,
     restDescription?: RestDescription
   ): Result<Presentation[] | undefined> {
+    const stream = partialCommand.stream;
     if (restDescription !== undefined) {
-      return restDescription.parseRest(stream, shouldPromptForRest, this);
+      return restDescription.parseRest(
+        partialCommand,
+        shouldPromptForRest,
+        this
+      );
     } else {
-      const result = this.parseKeywords(stream);
+      const result = this.parseKeywords(partialCommand);
       if (isError(result)) {
         return result;
       }

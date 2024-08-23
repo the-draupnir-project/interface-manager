@@ -8,13 +8,12 @@
 // </text>
 
 import { Err, Result, ResultError } from "@gnuxie/typescript-result";
-import { PresentationArgumentStream } from "./PresentationStream";
 import { ParameterDescription } from "./ParameterDescription";
-import { Presentation } from "./Presentation";
+import { PartialCommand } from "./Command";
 
 export class AbstractArgumentParseError extends ResultError {
   constructor(
-    public readonly stream: PresentationArgumentStream,
+    public readonly partialCommand: PartialCommand,
     message: string
   ) {
     super(message);
@@ -22,30 +21,30 @@ export class AbstractArgumentParseError extends ResultError {
 
   public static Result(
     message: string,
-    options: { stream: PresentationArgumentStream }
+    options: { partialCommand: PartialCommand }
   ): Result<never, AbstractArgumentParseError> {
-    return Err(new AbstractArgumentParseError(options.stream, message));
+    return Err(new AbstractArgumentParseError(options.partialCommand, message));
   }
 }
 
 export class ArgumentParseError extends AbstractArgumentParseError {
   constructor(
     public readonly parameter: ParameterDescription,
-    stream: PresentationArgumentStream,
+    partialCommand: PartialCommand,
     message: string
   ) {
-    super(stream, message);
+    super(partialCommand, message);
   }
 
   public static Result<Ok>(
     message: string,
     options: {
       parameter: ParameterDescription;
-      stream: PresentationArgumentStream;
+      partialCommand: PartialCommand;
     }
   ): Result<Ok, ArgumentParseError> {
     return Err(
-      new ArgumentParseError(options.parameter, options.stream, message)
+      new ArgumentParseError(options.parameter, options.partialCommand, message)
     );
   }
 }
@@ -53,9 +52,9 @@ export class ArgumentParseError extends AbstractArgumentParseError {
 export class UnexpectedArgumentError extends AbstractArgumentParseError {
   public static Result<Ok>(
     message: string,
-    options: { stream: PresentationArgumentStream }
+    options: { partialCommand: PartialCommand }
   ): Result<Ok, UnexpectedArgumentError> {
-    return Err(new UnexpectedArgumentError(options.stream, message));
+    return Err(new UnexpectedArgumentError(options.partialCommand, message));
   }
 }
 
@@ -69,7 +68,7 @@ export class PromptRequiredError extends ResultError {
     message: string,
     context: string[],
     public readonly parameterRequiringPrompt: ParameterDescription,
-    public readonly priorItems: Presentation[]
+    public readonly partialCommand: PartialCommand
   ) {
     super(message, context);
   }
@@ -78,14 +77,14 @@ export class PromptRequiredError extends ResultError {
     message: string,
     {
       promptParameter,
-      stream,
+      partialCommand,
     }: {
       promptParameter: ParameterDescription;
-      stream: PresentationArgumentStream;
+      partialCommand: PartialCommand;
     }
   ): Result<never, PromptRequiredError> {
     return Err(
-      new PromptRequiredError(message, [], promptParameter, stream.priorItems())
+      new PromptRequiredError(message, [], promptParameter, partialCommand)
     );
   }
 }

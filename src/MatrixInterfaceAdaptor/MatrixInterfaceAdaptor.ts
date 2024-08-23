@@ -11,7 +11,8 @@ import { Ok, Result, ResultError, isError } from "@gnuxie/typescript-result";
 import {
   Command,
   CommandDescription,
-  PresentationArgumentStream,
+  CompleteCommand,
+  PartialCommand,
 } from "../Command";
 import { MatrixRendererDescription } from "./MatrixRendererDescription";
 import { DocumentNode } from "../DeadDocument";
@@ -23,7 +24,7 @@ export interface MatrixInterfaceAdaptor<MatrixEventContext> {
    * each of the configured renderers for the interface adaptor.
    */
   invoke<CommandResult>(
-    command: Command,
+    command: CompleteCommand,
     eventContext: MatrixEventContext
   ): Promise<Result<CommandResult>>;
   /**
@@ -31,10 +32,8 @@ export interface MatrixInterfaceAdaptor<MatrixEventContext> {
    * The commandDesignator is required so that we can produce a `Command` object.
    */
   parseAndInvoke<CommandResult>(
-    commandDescription: CommandDescription,
-    commandDesignator: string[],
-    eventContext: MatrixEventContext,
-    stream: PresentationArgumentStream
+    partialCommand: PartialCommand,
+    eventContext: MatrixEventContext
   ): Promise<Result<CommandResult>>;
   registerRendererDescription(
     commandDescription: CommandDescription,
@@ -67,6 +66,7 @@ export type MatrixInterfaceRendererFailedCB<
 > = (
   adaptorContext: AdaptorContext,
   matrixEventContext: MatrixEventContext,
+  command: Command,
   error: ResultError
 ) => void;
 
@@ -96,7 +96,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     // nothing to do.
   }
   public async invoke<CommandResult>(
-    command: Command,
+    command: CompleteCommand,
     matrixEventContext: MatrixEventContext
   ): Promise<Result<CommandResult>> {
     const renderer = this.findRendererForCommandDescription(
@@ -114,6 +114,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
       ...(command.rest ?? [])
     );
     return (await this.runRenderersOnCommandResult(
+      command.toPartialCommand(),
       commandResult,
       renderer,
       matrixEventContext
@@ -133,6 +134,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   }
 
   private async runRenderersOnCommandResult(
+    partialCommand: PartialCommand,
     commandResult: Result<unknown>,
     renderer: MatrixRendererDescription,
     matrixEventContext: MatrixEventContext
@@ -151,6 +153,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
         this.rendererFailedCB(
           this.adaptorContext,
           matrixEventContext,
+          partialCommand,
           result.error
         );
       }
@@ -218,19 +221,17 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   }
 
   public async parseAndInvoke<CommandResult>(
-    commandDescription: CommandDescription,
-    commandDesignator: string[],
-    eventContext: MatrixEventContext,
-    stream: PresentationArgumentStream
+    partialCommand: PartialCommand,
+    eventContext: MatrixEventContext
   ): Promise<Result<CommandResult>> {
-    const renderer = this.findRendererForCommandDescription(commandDescription);
-    const parseResult = commandDescription.parametersDescription.parse(
-      commandDescription,
-      commandDesignator,
-      stream
+    const renderer = this.findRendererForCommandDescription(
+      partialCommand.description
     );
+    const parseResult =
+      partialCommand.description.parametersDescription.parse(partialCommand);
     if (isError(parseResult)) {
       return (await this.runRenderersOnCommandResult(
+        partialCommand,
         parseResult,
         renderer,
         eventContext

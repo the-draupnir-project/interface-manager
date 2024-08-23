@@ -15,10 +15,10 @@
 import { Ok, Result, isError } from "@gnuxie/typescript-result";
 import { ParameterDescription, Prompt } from "./ParameterDescription";
 import { Presentation, PresentationType } from "./Presentation";
-import { PresentationArgumentStream } from "./PresentationStream";
 import { KeywordParser } from "./KeywordParameterDescription";
 import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
+import { PartialCommand } from "./Command";
 
 /**
  * Describes a rest parameter for a command.
@@ -35,7 +35,7 @@ export interface RestDescription<
   /** The presentation type of each item. */
   readonly acceptor: PresentationType;
   parseRest(
-    stream: PresentationArgumentStream,
+    partialCommand: PartialCommand,
     promptForRest: boolean,
     keywordParser: KeywordParser
   ): Result<Presentation[]>;
@@ -71,10 +71,11 @@ export class StandardRestDescription<
    * If a ReadItem or Keyword is invalid for the command, then an error will be returned.
    */
   public parseRest(
-    stream: PresentationArgumentStream,
+    partialCommand: PartialCommand,
     promptForRest: boolean,
     keywordParser: KeywordParser
   ): Result<Presentation[]> {
+    const stream = partialCommand.stream;
     const items: Presentation[] = [];
     if (
       this.prompt &&
@@ -86,12 +87,12 @@ export class StandardRestDescription<
         `A prompt is required for the missing argument for the ${this.name} parameter`,
         {
           promptParameter: this as ParameterDescription,
-          stream,
+          partialCommand,
         }
       );
     }
     while (stream.peekItem(undefined) !== undefined) {
-      const keywordResult = keywordParser.parseKeywords(stream);
+      const keywordResult = keywordParser.parseKeywords(partialCommand);
       if (isError(keywordResult)) {
         return keywordResult;
       }
@@ -103,7 +104,7 @@ export class StandardRestDescription<
             `Was expecting a match for the presentation type: ${this.acceptor.name} but got ${TextPresentationRenderer.render(nextItem)}.`,
             {
               parameter: this as ParameterDescription,
-              stream,
+              partialCommand,
             }
           );
         }
