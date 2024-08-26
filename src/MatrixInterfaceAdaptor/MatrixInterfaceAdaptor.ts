@@ -48,7 +48,7 @@ export type MatrixInterfaceDefaultRenderer<
 > = (
   adaptorCotnext: AdaptorContext,
   matrixEventContext: MatrixEventContext,
-  commandResult: CommandResult
+  commandResult: Result<CommandResult>
 ) => Promise<Result<void>>;
 
 export type MatrixInterfaceEventsFromDeadDocument<
