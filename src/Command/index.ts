@@ -13,6 +13,7 @@ export * from "./ParameterParsing";
 export * from "./ParsedKeywords";
 export * from "./ParseErrors";
 export * from "./Presentation";
+export * from "./PresentationSchema";
 export * from "./PresentationStream";
 export * from "./PromptForAccept";
 export * from "./RestParameterDescription";
