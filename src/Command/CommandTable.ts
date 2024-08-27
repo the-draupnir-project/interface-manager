@@ -32,6 +32,7 @@ export type CommandTableImport = {
 };
 
 export interface CommandTable {
+  readonly name: string | symbol;
   /**
    * Can be used to render a help command with an index of all the commands.
    * @returns All of the commands in this table.
