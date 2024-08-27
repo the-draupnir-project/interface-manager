@@ -19,8 +19,27 @@ import {
   StandardPresentationArgumentStream,
 } from "./PresentationStream";
 
+export type BaseCommandTableEntry =
+  | EmptyCommandTableEntry
+  | CommandTableEntry
+  | SubCommandTableEntry;
+
+export type EmptyCommandTableEntry = {
+  designator: string[];
+  sourceTable: CommandTable;
+  subCommands?: never;
+  currentCommand?: never;
+};
+
 export type CommandTableEntry = {
-  subCommands?: Map<string, CommandTableEntry>;
+  subCommands?: Map<string, BaseCommandTableEntry>;
+  currentCommand: CommandDescription;
+  designator: string[];
+  sourceTable: CommandTable;
+};
+
+export type SubCommandTableEntry = {
+  subCommands: Map<string, BaseCommandTableEntry>;
   currentCommand?: CommandDescription;
   designator: string[];
   sourceTable: CommandTable;
@@ -65,7 +84,7 @@ export interface CommandTable {
 export class StandardCommandTable implements CommandTable {
   private readonly exportedCommands = new Set<CommandTableEntry>();
   private readonly flattenedCommands = new Set<CommandTableEntry>();
-  private readonly commands: CommandTableEntry = {
+  private readonly commands: BaseCommandTableEntry = {
     designator: [],
     sourceTable: this,
   };
@@ -95,11 +114,11 @@ export class StandardCommandTable implements CommandTable {
 
   private findAMatchingCommandEntry(
     stream: PresentationArgumentStream
-  ): CommandTableEntry | undefined {
+  ): BaseCommandTableEntry | undefined {
     const tableHelper = (
-      startingTableEntry: CommandTableEntry,
+      startingTableEntry: BaseCommandTableEntry,
       argumentStream: PresentationArgumentStream
-    ): undefined | CommandTableEntry => {
+    ): undefined | BaseCommandTableEntry => {
       const nextArgument = argumentStream.peekItem();
       if (
         nextArgument === undefined ||
@@ -137,7 +156,7 @@ export class StandardCommandTable implements CommandTable {
   private internCommandHelper(
     command: CommandDescription,
     originalTable: CommandTable,
-    tableEntry: CommandTableEntry,
+    tableEntry: BaseCommandTableEntry,
     designator: string[]
   ): void {
     const currentDesignator = designator.shift();
@@ -149,16 +168,16 @@ export class StandardCommandTable implements CommandTable {
       }
       tableEntry.currentCommand = command;
       if (originalTable === this) {
-        this.exportedCommands.add(tableEntry);
+        this.exportedCommands.add(tableEntry as CommandTableEntry);
       }
-      this.flattenedCommands.add(tableEntry);
+      this.flattenedCommands.add(tableEntry as CommandTableEntry);
     } else {
       if (tableEntry.subCommands === undefined) {
         tableEntry.subCommands = new Map();
       }
       const nextLookupEntry =
         tableEntry.subCommands.get(currentDesignator) ??
-        ((lookup: CommandTableEntry) => (
+        ((lookup: BaseCommandTableEntry) => (
           tableEntry.subCommands.set(currentDesignator, lookup), lookup
         ))({ designator: [], sourceTable: this });
       this.internCommandHelper(
@@ -178,8 +197,11 @@ export class StandardCommandTable implements CommandTable {
     return this;
   }
 
-  public importTable(table: CommandTable, baseDesignator: string[]): void {
-    for (const commandTableEntry of table.getAllCommands()) {
+  public importTable(
+    importedTable: CommandTable,
+    baseDesignator: string[]
+  ): void {
+    for (const commandTableEntry of importedTable.getAllCommands()) {
       if (
         this.findAMatchingCommand(
           new StandardPresentationArgumentStream(
@@ -192,14 +214,17 @@ export class StandardCommandTable implements CommandTable {
         );
       }
     }
-    this.importedTables.set(table, { table, baseDesignator });
-    for (const command of table.getAllCommands()) {
-      if (command.currentCommand !== undefined) {
-        this.internCommandHelper(command.currentCommand, table, this.commands, [
-          ...baseDesignator,
-          ...command.designator,
-        ]);
-      }
+    this.importedTables.set(importedTable, {
+      table: importedTable,
+      baseDesignator,
+    });
+    for (const command of importedTable.getAllCommands()) {
+      this.internCommandHelper(
+        command.currentCommand,
+        importedTable,
+        this.commands,
+        [...baseDesignator, ...command.designator]
+      );
     }
   }
 }
