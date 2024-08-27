@@ -19,6 +19,12 @@ import { KeywordParser } from "./KeywordParameterDescription";
 import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
 import { PartialCommand } from "./Command";
+import {
+  PresentationSchema,
+  PresentationSchemaType,
+  checkPresentationSchema,
+  printPresentationSchema,
+} from "./PresentationSchema";
 
 /**
  * Describes a rest parameter for a command.
@@ -33,7 +39,7 @@ export interface RestDescription<
 > extends ParameterDescription<ExecutorContext> {
   readonly name: string;
   /** The presentation type of each item. */
-  readonly acceptor: PresentationType;
+  readonly acceptor: PresentationSchema;
   parseRest(
     partialCommand: PartialCommand,
     promptForRest: boolean,
@@ -55,13 +61,23 @@ export class StandardRestDescription<
   ObjectType = unknown,
 > implements ParameterDescription<ExecutorContext>
 {
+  public readonly acceptor: PresentationSchema;
   constructor(
     public readonly name: string,
     /** The presentation type of each item. */
-    public readonly acceptor: PresentationType,
+    acceptor: PresentationType | PresentationSchema,
     public readonly prompt?: Prompt<ExecutorContext, ObjectType>,
     public readonly description?: string
-  ) {}
+  ) {
+    if ("schemaType" in acceptor) {
+      this.acceptor = acceptor;
+    } else {
+      this.acceptor = {
+        schemaType: PresentationSchemaType.Single,
+        presentationType: acceptor,
+      };
+    }
+  }
 
   /**
    * Parse the rest of a command.
@@ -98,10 +114,13 @@ export class StandardRestDescription<
       }
       const nextItem = stream.peekItem(undefined);
       if (nextItem !== undefined) {
-        const validationResult = this.acceptor.validator(nextItem);
+        const validationResult = checkPresentationSchema(
+          this.acceptor,
+          nextItem
+        );
         if (!validationResult) {
           return ArgumentParseError.Result(
-            `Was expecting a match for the presentation type: ${this.acceptor.name} but got ${TextPresentationRenderer.render(nextItem)}.`,
+            `Was expecting a match for the presentation type: ${printPresentationSchema(this.acceptor)} but got ${TextPresentationRenderer.render(nextItem)}.`,
             {
               parameter: this as ParameterDescription,
               partialCommand,

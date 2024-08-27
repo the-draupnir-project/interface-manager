@@ -48,6 +48,7 @@ export type MatrixInterfaceDefaultRenderer<
 > = (
   adaptorCotnext: AdaptorContext,
   matrixEventContext: MatrixEventContext,
+  command: Command,
   commandResult: Result<CommandResult>
 ) => Promise<Result<void>>;
 
@@ -80,6 +81,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   public constructor(
     private readonly adaptorContext: AdaptorContext,
     private readonly adaptorToCommandContextTranslator: AdaptorToCommandContextTranslator<AdaptorContext>,
+    /** Render the result and return an error if there was a problem while rendering. */
     private readonly defaultRenderer: MatrixInterfaceDefaultRenderer<
       AdaptorContext,
       MatrixEventContext
@@ -140,7 +142,12 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     matrixEventContext: MatrixEventContext
   ): Promise<Result<unknown>> {
     const renderResults = await Promise.all([
-      this.maybeRunDefaultRenderer(renderer, matrixEventContext, commandResult),
+      this.maybeRunDefaultRenderer(
+        renderer,
+        matrixEventContext,
+        partialCommand,
+        commandResult
+      ),
       this.maybeRunJSXRenderer(renderer, matrixEventContext, commandResult),
       this.maybeRunArbritraryRenderer(
         renderer,
@@ -164,12 +171,14 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   private async maybeRunDefaultRenderer(
     renderer: MatrixRendererDescription,
     eventContext: MatrixEventContext,
+    command: Command,
     commandResult: Result<unknown>
   ): Promise<Result<void>> {
     if (renderer.isAlwaysSupposedToUseDefaultRenderer) {
       return await this.defaultRenderer(
         this.adaptorContext,
         eventContext,
+        command,
         commandResult
       );
     } else {

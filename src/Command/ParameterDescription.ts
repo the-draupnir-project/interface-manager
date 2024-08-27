@@ -12,7 +12,7 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { PresentationType } from "./Presentation";
+import { PresentationSchema } from "./PresentationSchema";
 import { PromptOptions } from "./PromptForAccept";
 
 export type Prompt<ExecutorContext, ObjectType = unknown> = (
@@ -23,7 +23,7 @@ export type Prompt<ExecutorContext, ObjectType = unknown> = (
 export interface ParameterDescription<ExecutorContext = unknown> {
   name: string;
   description?: string | undefined;
-  acceptor: PresentationType;
+  acceptor: PresentationSchema;
   /**
    * Prompt the interface for an argument that was not provided.
    * @param this Expected to be the executor context that is used to provided to the command executor.

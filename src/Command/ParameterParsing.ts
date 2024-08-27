@@ -28,6 +28,13 @@ import { CompleteCommand, PartialCommand } from "./Command";
 import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
 import { PresentationType } from "./Presentation";
+import {
+  PresentationSchema,
+  PresentationSchemaType,
+  UnionPresentationSchema,
+  checkPresentationSchema,
+  printPresentationSchema,
+} from "./PresentationSchema";
 
 export type ParameterParseFunction<
   Arguments extends unknown[] = unknown[],
@@ -85,9 +92,9 @@ export class StandardCommandParametersDescription
           );
         }
       }
-      if (!parameter.acceptor.validator(nextItem)) {
+      if (!checkPresentationSchema(parameter.acceptor, nextItem)) {
         return ArgumentParseError.Result(
-          `Was expecting a match for the presentation type: ${parameter.acceptor.name} but got ${TextPresentationRenderer.render(nextItem)}.`,
+          `Was expecting a match for the presentation type: ${printPresentationSchema(parameter.acceptor)} but got ${TextPresentationRenderer.render(nextItem)}.`,
           {
             parameter,
             partialCommand,
@@ -122,7 +129,7 @@ export class StandardCommandParametersDescription
 }
 
 export type DescribeCommandParametersOptions = {
-  readonly parameters: ParameterDescription[];
+  readonly parameters: DescribeParameter[];
   readonly rest?: DescribeRestParameters | undefined;
   readonly keywords?: DescribeKeywordParametersOptions | undefined;
 };
@@ -130,7 +137,7 @@ export function describeCommandParameters(
   options: DescribeCommandParametersOptions
 ): CommandParametersDescription {
   return new StandardCommandParametersDescription(
-    options.parameters,
+    options.parameters.map(describeParameter),
     options.keywords === undefined
       ? describeKeywordParameters({
           keywordDescriptions: {},
@@ -143,14 +150,31 @@ export function describeCommandParameters(
   );
 }
 
-export function union<ObjectType = unknown>(
+export type DescribeParameter = Omit<ParameterDescription, "acceptor"> & {
+  acceptor: PresentationSchema | PresentationType;
+};
+
+function describeParameter(
+  description: DescribeParameter
+): ParameterDescription {
+  if ("schemaType" in description.acceptor) {
+    return description as ParameterDescription;
+  } else {
+    return {
+      ...description,
+      acceptor: {
+        schemaType: PresentationSchemaType.Single,
+        presentationType: description.acceptor,
+      },
+    };
+  }
+}
+
+export function union(
   ...presentationTypes: PresentationType[]
-): PresentationType {
-  const name = presentationTypes.map((type) => type.name).join(" | ");
+): UnionPresentationSchema {
   return {
-    name,
-    validator: (value: unknown): value is ObjectType => {
-      return presentationTypes.some((p) => p.validator(value));
-    },
+    schemaType: PresentationSchemaType.Union,
+    variants: presentationTypes,
   };
 }

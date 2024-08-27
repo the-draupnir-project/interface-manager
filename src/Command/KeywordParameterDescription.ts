@@ -16,6 +16,10 @@ import { ParsedKeywords, StandardParsedKeywords } from "./ParsedKeywords";
 import { Presentation } from "./Presentation";
 import { RestDescription } from "./RestParameterDescription";
 import { PartialCommand } from "./Command";
+import {
+  checkPresentationSchema,
+  printPresentationSchema,
+} from "./PresentationSchema";
 
 /**
  * An extension of ParameterDescription, some keyword arguments
@@ -56,12 +60,12 @@ export class KeywordParser {
   ): Result<Presentation | true, ArgumentParseError> {
     const stream = partialCommand.stream;
     const nextItem = stream.peekItem();
-    if (!(nextItem?.object instanceof Keyword)) {
-      if (keyword.acceptor.validator(nextItem)) {
+    if (nextItem !== undefined && !(nextItem.object instanceof Keyword)) {
+      if (checkPresentationSchema(keyword.acceptor, nextItem)) {
         return Ok(stream.readItem());
       } else {
         return ArgumentParseError.Result(
-          `Was expecting a match for the presentation type: ${keyword.acceptor.name} but got ${TextPresentationRenderer.render(nextItem)}.`,
+          `Was expecting a match for the presentation type: ${printPresentationSchema(keyword.acceptor)} but got ${TextPresentationRenderer.render(nextItem)}.`,
           {
             parameter: keyword,
             partialCommand,

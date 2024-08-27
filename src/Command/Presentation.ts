@@ -26,6 +26,11 @@
 
 export interface PresentationType<ObjectType = unknown> {
   name: string;
+  /**
+   * Used when creating a presentation to ensure value is ObjectType.
+   * This should not be used to determine the type of a given presentation,
+   * that's what the `type` field on the presentation is for.
+   */
   validator: (value: unknown) => value is ObjectType;
 }
 
