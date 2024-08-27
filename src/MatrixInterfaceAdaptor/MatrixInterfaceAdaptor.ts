@@ -18,13 +18,14 @@ import { MatrixRendererDescription } from "./MatrixRendererDescription";
 import { DocumentNode } from "../DeadDocument";
 import { AdaptorToCommandContextTranslator } from "./AdaptorToCommandContextTranslator";
 
-export interface MatrixInterfaceAdaptor<MatrixEventContext> {
+export interface MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
   /**
    * Invoke the command object, running the command executor and then calling
    * each of the configured renderers for the interface adaptor.
    */
   invoke<CommandResult>(
     command: CompleteCommand,
+    adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext
   ): Promise<Result<CommandResult>>;
   /**
@@ -33,12 +34,13 @@ export interface MatrixInterfaceAdaptor<MatrixEventContext> {
    */
   parseAndInvoke<CommandResult>(
     partialCommand: PartialCommand,
+    adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext
   ): Promise<Result<CommandResult>>;
   registerRendererDescription(
     commandDescription: CommandDescription,
     rendererDescription: MatrixRendererDescription
-  ): MatrixInterfaceAdaptor<MatrixEventContext>;
+  ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>;
 }
 
 export type MatrixInterfaceDefaultRenderer<
@@ -72,14 +74,13 @@ export type MatrixInterfaceRendererFailedCB<
 ) => void;
 
 export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
-  implements MatrixInterfaceAdaptor<MatrixEventContext>
+  implements MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
 {
   private readonly renderers = new Map<
     CommandDescription,
     MatrixRendererDescription
   >();
   public constructor(
-    private readonly adaptorContext: AdaptorContext,
     private readonly adaptorToCommandContextTranslator: AdaptorToCommandContextTranslator<AdaptorContext>,
     /** Render the result and return an error if there was a problem while rendering. */
     private readonly defaultRenderer: MatrixInterfaceDefaultRenderer<
@@ -99,6 +100,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   }
   public async invoke<CommandResult>(
     command: CompleteCommand,
+    adaptorContext: AdaptorContext,
     matrixEventContext: MatrixEventContext
   ): Promise<Result<CommandResult>> {
     const renderer = this.findRendererForCommandDescription(
@@ -107,7 +109,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     const commandContext =
       this.adaptorToCommandContextTranslator.translateContext(
         command.description,
-        this.adaptorContext
+        adaptorContext
       );
     const commandResult = await command.description.executor(
       commandContext,
@@ -119,6 +121,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
       command.toPartialCommand(),
       commandResult,
       renderer,
+      adaptorContext,
       matrixEventContext
     )) as Result<CommandResult>;
   }
@@ -139,18 +142,26 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     partialCommand: PartialCommand,
     commandResult: Result<unknown>,
     renderer: MatrixRendererDescription,
+    adaptorContext: AdaptorContext,
     matrixEventContext: MatrixEventContext
   ): Promise<Result<unknown>> {
     const renderResults = await Promise.all([
       this.maybeRunDefaultRenderer(
         renderer,
+        adaptorContext,
         matrixEventContext,
         partialCommand,
         commandResult
       ),
-      this.maybeRunJSXRenderer(renderer, matrixEventContext, commandResult),
+      this.maybeRunJSXRenderer(
+        renderer,
+        adaptorContext,
+        matrixEventContext,
+        commandResult
+      ),
       this.maybeRunArbritraryRenderer(
         renderer,
+        adaptorContext,
         matrixEventContext,
         commandResult
       ),
@@ -158,7 +169,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     for (const result of renderResults) {
       if (isError(result)) {
         this.rendererFailedCB(
-          this.adaptorContext,
+          adaptorContext,
           matrixEventContext,
           partialCommand,
           result.error
@@ -170,13 +181,14 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
 
   private async maybeRunDefaultRenderer(
     renderer: MatrixRendererDescription,
+    adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext,
     command: Command,
     commandResult: Result<unknown>
   ): Promise<Result<void>> {
     if (renderer.isAlwaysSupposedToUseDefaultRenderer) {
       return await this.defaultRenderer(
-        this.adaptorContext,
+        adaptorContext,
         eventContext,
         command,
         commandResult
@@ -188,6 +200,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
 
   private async maybeRunJSXRenderer(
     renderer: MatrixRendererDescription,
+    adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext,
     commandResult: Result<unknown>
   ): Promise<Result<void>> {
@@ -197,7 +210,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
         return document;
       }
       return await this.matrixEventsFromDeadDocument(
-        this.adaptorContext,
+        adaptorContext,
         eventContext,
         document.ok
       );
@@ -208,12 +221,13 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
 
   private async maybeRunArbritraryRenderer(
     renderer: MatrixRendererDescription,
+    adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext,
     commandResult: Result<unknown>
   ): Promise<Result<void>> {
     if (renderer.arbritraryRenderer) {
       return await renderer.arbritraryRenderer(
-        this.adaptorContext,
+        adaptorContext,
         eventContext,
         commandResult
       );
@@ -231,6 +245,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
 
   public async parseAndInvoke<CommandResult>(
     partialCommand: PartialCommand,
+    adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext
   ): Promise<Result<CommandResult>> {
     const renderer = this.findRendererForCommandDescription(
@@ -243,9 +258,10 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
         partialCommand,
         parseResult,
         renderer,
+        adaptorContext,
         eventContext
       )) as Result<CommandResult>;
     }
-    return await this.invoke(parseResult.ok, eventContext);
+    return await this.invoke(parseResult.ok, adaptorContext, eventContext);
   }
 }

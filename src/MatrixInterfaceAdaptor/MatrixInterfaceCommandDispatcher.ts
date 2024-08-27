@@ -48,7 +48,10 @@ export class StandardMatrixInterfaceCommandDispatcher<
 > implements MatrixInterfaceCommandDispatcher<MatrixEventContext>
 {
   public constructor(
-    private readonly interfaceAdaptor: MatrixInterfaceAdaptor<MatrixEventContext>,
+    private readonly interfaceAdaptor: MatrixInterfaceAdaptor<
+      AdaptorContext,
+      MatrixEventContext
+    >,
     private readonly adaptorContext: AdaptorContext,
     private readonly comandTable: CommandTable,
     private readonly helpCommand: CommandDescription,
@@ -114,6 +117,7 @@ export class StandardMatrixInterfaceCommandDispatcher<
       void this.interfaceAdaptor
         .parseAndInvoke(
           makePartialCommand(stream, commandToUse, normalisedDesignator),
+          this.adaptorContext,
           eventContext
         )
         .then(
