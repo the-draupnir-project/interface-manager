@@ -18,28 +18,45 @@ import {
 } from "./CommandDescription";
 import {
   DescribeCommandParametersOptions,
+  ExtractArgumentsFromParameters,
   describeCommandParameters,
 } from "./ParameterParsing";
 
 export type DescribeCommandOptions<
   Context,
   CommandResult,
-  Arguments extends unknown[],
+  ParametersOptions extends DescribeCommandParametersOptions,
 > = {
   /** A short one line summary of what the command does to display alongside it's help */
   readonly summary: string;
   /** A longer description that goes into detail. */
   readonly description?: string;
-  readonly executor: CommandExecutorFunction<Context, CommandResult, Arguments>;
-} & DescribeCommandParametersOptions;
+  readonly executor: CommandExecutorFunction<
+    Context,
+    CommandResult,
+    ExtractArgumentsFromParameters<ParametersOptions["parameters"]>
+  >;
+} & ParametersOptions;
 
 export function describeCommand<
   Context,
   CommandResult,
-  Arguments extends unknown[],
+  ParametersOptions extends DescribeCommandParametersOptions,
 >(
-  options: DescribeCommandOptions<Context, CommandResult, Arguments>
-): CommandDescription<Context, CommandResult, Arguments> {
+  options: {
+    summary: string;
+    description?: string;
+    executor: CommandExecutorFunction<
+      Context,
+      CommandResult,
+      ExtractArgumentsFromParameters<ParametersOptions["parameters"]>
+    >;
+  } & ParametersOptions
+): CommandDescription<
+  Context,
+  CommandResult,
+  ExtractArgumentsFromParameters<ParametersOptions["parameters"]>
+> {
   return {
     summary: options.summary,
     description: options.description,

@@ -15,6 +15,18 @@ export enum PresentationSchemaType {
   Top = "Top",
 }
 
+type ObjectTypeForSingleSchema<T extends SinglePresentationSchema> =
+  T["presentationType"] extends PresentationType<infer ObjectType>
+    ? ObjectType
+    : never;
+
+type ObjectTypeForUnionSchema<T extends UnionPresentationSchema> =
+  T["variants"] extends PresentationType<infer ObjectType>[]
+    ? ObjectType
+    : never;
+
+type ObjectTypeForTopSchema = unknown;
+
 /**
  * There is something wrong with the way argument parsing code is using validators
  * of presnetation types. When a parameter has declared that it expects arguments
@@ -30,14 +42,14 @@ export enum PresentationSchemaType {
  *
  * So is born the presentation schema.
  */
-export type SinglePresentationSchema = {
+export type SinglePresentationSchema<ObjectType = unknown> = {
   readonly schemaType: PresentationSchemaType.Single;
-  readonly presentationType: PresentationType;
+  readonly presentationType: PresentationType<ObjectType>;
 };
 
-export type UnionPresentationSchema = {
+export type UnionPresentationSchema<ObjectType = unknown> = {
   readonly schemaType: PresentationSchemaType.Union;
-  readonly variants: PresentationType[];
+  readonly variants: PresentationType<ObjectType>[];
 };
 
 export type TopPresentationSchema = {
@@ -52,6 +64,15 @@ export type PresentationSchema =
   | SinglePresentationSchema
   | UnionPresentationSchema
   | TopPresentationSchema;
+
+export type ObjectTypeForPresentationSchema<T extends PresentationSchema> =
+  T extends SinglePresentationSchema
+    ? ObjectTypeForSingleSchema<T>
+    : T extends UnionPresentationSchema
+      ? ObjectTypeForUnionSchema<T>
+      : T extends TopPresentationSchema
+        ? ObjectTypeForTopSchema
+        : never;
 
 export function checkPresentationSchema<ObjectType>(
   schema: PresentationSchema,

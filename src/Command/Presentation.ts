@@ -34,6 +34,9 @@ export interface PresentationType<ObjectType = unknown> {
   validator: (value: unknown) => value is ObjectType;
 }
 
+export type ObjectTypeFromPresentationType<T> =
+  T extends PresentationType<infer ObjectType> ? ObjectType : never;
+
 export interface Presentation<ObjectType = unknown> {
   object: ObjectType;
   presentationType: PresentationType;
@@ -55,10 +58,10 @@ export function findPresentationType(name: string): PresentationType {
   }
 }
 
-export function registerPresentationType(
+export function registerPresentationType<ObjectType>(
   name: string,
-  presentationType: PresentationType
-): PresentationType {
+  presentationType: PresentationType<ObjectType>
+): PresentationType<ObjectType> {
   if (PRESENTATION_TYPES.has(name)) {
     throw new TypeError(
       `presentation type with the name: ${name} has already been registered`
@@ -68,8 +71,8 @@ export function registerPresentationType(
   return presentationType;
 }
 
-export function definePresentationType(
-  description: PresentationType
-): PresentationType {
+export function definePresentationType<ObjectType>(
+  description: PresentationType<ObjectType>
+): PresentationType<ObjectType> {
   return registerPresentationType(description.name, Object.freeze(description));
 }

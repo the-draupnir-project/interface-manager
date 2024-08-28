@@ -27,7 +27,10 @@ import {
 import { CompleteCommand, PartialCommand } from "./Command";
 import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
-import { PresentationType } from "./Presentation";
+import {
+  ObjectTypeFromPresentationType,
+  PresentationType,
+} from "./Presentation";
 import {
   PresentationSchema,
   PresentationSchemaType,
@@ -152,6 +155,23 @@ export function describeCommandParameters(
 
 export type DescribeParameter = Omit<ParameterDescription, "acceptor"> & {
   acceptor: PresentationSchema | PresentationType;
+};
+
+export type ObjectTypeFromAcceptor<T> = T extends PresentationType
+  ? ObjectTypeFromPresentationType<T>
+  : T extends PresentationSchema
+    ? ObjectTypeFromPresentationType<T>
+    : never;
+
+export type ExtractParameterObjectType<T extends DescribeParameter> =
+  ObjectTypeFromAcceptor<T["acceptor"]>;
+
+export type ExtractArgumentsFromParameters<
+  T extends DescribeCommandParametersOptions["parameters"],
+> = {
+  [K in keyof T]: T[K] extends DescribeParameter
+    ? ExtractParameterObjectType<T[K]>
+    : never;
 };
 
 function describeParameter(

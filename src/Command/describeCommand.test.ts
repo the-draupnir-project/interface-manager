@@ -28,13 +28,14 @@ it("Can define and execute commands.", async function () {
       user: MatrixUserID
     ): Promise<Result<boolean>>;
   };
-  const BanCommand = describeCommand<
-    Context,
-    boolean,
-    [MatrixUserID, MatrixRoomReference]
-  >({
+  const BanCommand = describeCommand({
     summary: "Ban a user from a room",
-    async executor(context, _keywords, user, room) {
+    async executor(
+      context: Context,
+      _keywords,
+      user,
+      room
+    ): Promise<Result<boolean>> {
       return await context.banUser(room, user);
     },
     parameters: [
