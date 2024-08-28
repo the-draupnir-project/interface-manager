@@ -60,9 +60,9 @@ export const TopPresentationSchema: TopPresentationSchema = Object.freeze({
   schemaType: PresentationSchemaType.Top,
 });
 
-export type PresentationSchema =
-  | SinglePresentationSchema
-  | UnionPresentationSchema
+export type PresentationSchema<ObjectType = unknown> =
+  | SinglePresentationSchema<ObjectType>
+  | UnionPresentationSchema<ObjectType>
   | TopPresentationSchema;
 
 export type ObjectTypeForPresentationSchema<T extends PresentationSchema> =

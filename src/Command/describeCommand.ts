@@ -17,15 +17,16 @@ import {
   CommandExecutorFunction,
 } from "./CommandDescription";
 import {
+  ArgumentsFromParametersTuple,
   DescribeCommandParametersOptions,
-  ExtractArgumentsFromParameters,
+  DescribeParameter,
   describeCommandParameters,
 } from "./ParameterParsing";
 
 export type DescribeCommandOptions<
   Context,
   CommandResult,
-  ParametersOptions extends DescribeCommandParametersOptions,
+  Parameters extends DescribeParameter[] = DescribeParameter[],
 > = {
   /** A short one line summary of what the command does to display alongside it's help */
   readonly summary: string;
@@ -34,28 +35,20 @@ export type DescribeCommandOptions<
   readonly executor: CommandExecutorFunction<
     Context,
     CommandResult,
-    ExtractArgumentsFromParameters<ParametersOptions["parameters"]>
+    ArgumentsFromParametersTuple<Parameters>
   >;
-} & ParametersOptions;
+} & DescribeCommandParametersOptions<Parameters>;
 
 export function describeCommand<
   Context,
   CommandResult,
-  ParametersOptions extends DescribeCommandParametersOptions,
+  Parameters extends DescribeParameter[] = DescribeParameter[],
 >(
-  options: {
-    summary: string;
-    description?: string;
-    executor: CommandExecutorFunction<
-      Context,
-      CommandResult,
-      ExtractArgumentsFromParameters<ParametersOptions["parameters"]>
-    >;
-  } & ParametersOptions
+  options: DescribeCommandOptions<Context, CommandResult, Parameters>
 ): CommandDescription<
   Context,
   CommandResult,
-  ExtractArgumentsFromParameters<ParametersOptions["parameters"]>
+  ArgumentsFromParametersTuple<Parameters>
 > {
   return {
     summary: options.summary,

@@ -46,18 +46,21 @@ export type ParameterParseFunction<
   partialCommand: PartialCommand
 ) => Result<CompleteCommand<Arguments, RestArguments>>;
 
-export interface CommandParametersDescription {
+export interface CommandParametersDescription<
+  TParameters extends ParameterDescription[],
+> {
   readonly parse: ParameterParseFunction;
-  readonly descriptions: ParameterDescription[];
+  readonly descriptions: TParameters;
   readonly rest?: RestDescription | undefined;
   readonly keywords: KeywordParameterDescription;
 }
 
-export class StandardCommandParametersDescription
-  implements CommandParametersDescription
+export class StandardCommandParametersDescription<
+  TParameters extends ParameterDescription[],
+> implements CommandParametersDescription<TParameters>
 {
   constructor(
-    public readonly descriptions: ParameterDescription[],
+    public readonly descriptions: TParameters,
     public readonly keywords: KeywordParameterDescription,
     public readonly rest?: RestDescription | undefined
   ) {}
@@ -131,16 +134,46 @@ export class StandardCommandParametersDescription
   }
 }
 
-export type DescribeCommandParametersOptions = {
-  readonly parameters: DescribeParameter[];
+export type ParameterTupleFromArguments<Arguments extends unknown[]> = {
+  [I in keyof Arguments]: DescribeParameter<Arguments[I]>;
+};
+
+export type ParameterDescriptionsFromArguments<Arguments extends unknown[]> = {
+  [I in keyof Arguments]: ParameterDescription<Arguments[I]>;
+};
+
+export type ArgumentsFromParametersTuple<
+  TParameters extends DescribeParameter[],
+> = {
+  [I in keyof TParameters]: ExtractParameterObjectType<TParameters[I]>;
+};
+
+export type ParameterDescriptionFromParamaters<
+  TParameters extends DescribeParameter[],
+> = {
+  [I in keyof TParameters]: ParameterDescription<
+    ExtractParameterObjectType<TParameters[I]>
+  >;
+};
+
+export type DescribeCommandParametersOptions<
+  TParameters extends DescribeParameter[] = DescribeParameter[],
+> = {
+  readonly parameters: TParameters;
   readonly rest?: DescribeRestParameters | undefined;
   readonly keywords?: DescribeKeywordParametersOptions | undefined;
 };
-export function describeCommandParameters(
-  options: DescribeCommandParametersOptions
-): CommandParametersDescription {
-  return new StandardCommandParametersDescription(
-    options.parameters.map(describeParameter),
+export function describeCommandParameters<
+  TParameters extends DescribeParameter[] = DescribeParameter[],
+>(
+  options: DescribeCommandParametersOptions<TParameters>
+): CommandParametersDescription<
+  ParameterDescriptionFromParamaters<TParameters>
+> {
+  return new StandardCommandParametersDescription<
+    ParameterDescriptionFromParamaters<TParameters>
+  >(
+    parameterDescriptionsFromParameterOptions(options.parameters),
     options.keywords === undefined
       ? describeKeywordParameters({
           keywordDescriptions: {},
@@ -153,8 +186,11 @@ export function describeCommandParameters(
   );
 }
 
-export type DescribeParameter = Omit<ParameterDescription, "acceptor"> & {
-  acceptor: PresentationSchema | PresentationType;
+export type DescribeParameter<ObjectType = unknown> = Omit<
+  ParameterDescription<ObjectType>,
+  "acceptor"
+> & {
+  acceptor: PresentationSchema<ObjectType> | PresentationType<ObjectType>;
 };
 
 export type ObjectTypeFromAcceptor<T> = T extends PresentationType
@@ -166,17 +202,17 @@ export type ObjectTypeFromAcceptor<T> = T extends PresentationType
 export type ExtractParameterObjectType<T extends DescribeParameter> =
   ObjectTypeFromAcceptor<T["acceptor"]>;
 
-export type ExtractArgumentsFromParameters<
-  T extends DescribeCommandParametersOptions["parameters"],
-> = {
-  [K in keyof T]: T[K] extends DescribeParameter
-    ? ExtractParameterObjectType<T[K]>
-    : never;
-};
+function parameterDescriptionsFromParameterOptions<
+  TParameters extends DescribeParameter[],
+>(descriptions: TParameters): ParameterDescriptionFromParamaters<TParameters> {
+  return descriptions.map(
+    describeParameter
+  ) as ParameterDescriptionFromParamaters<TParameters>;
+}
 
-function describeParameter(
-  description: DescribeParameter
-): ParameterDescription {
+function describeParameter<ObjectType>(
+  description: DescribeParameter<ObjectType>
+): ParameterDescription<ObjectType> {
   if ("schemaType" in description.acceptor) {
     return description as ParameterDescription;
   } else {

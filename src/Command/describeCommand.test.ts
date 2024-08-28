@@ -8,6 +8,7 @@
 // </text>
 
 import {
+  MatrixRoomID,
   MatrixRoomReference,
   MatrixUserID,
   StringRoomID,

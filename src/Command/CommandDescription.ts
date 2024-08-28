@@ -14,7 +14,10 @@
 
 import { Result } from "@gnuxie/typescript-result";
 import { ParsedKeywords } from "./ParsedKeywords";
-import { CommandParametersDescription } from "./ParameterParsing";
+import {
+  CommandParametersDescription,
+  ParameterDescriptionsFromArguments,
+} from "./ParameterParsing";
 
 export type CommandExecutorFunction<
   Context = unknown,
@@ -38,7 +41,9 @@ export interface CommandDescription<
   readonly summary: string;
   /** A longer description that goes into detail. */
   readonly description?: string | undefined;
-  readonly parametersDescription: CommandParametersDescription;
+  readonly parametersDescription: CommandParametersDescription<
+    ParameterDescriptionsFromArguments<Arguments>
+  >;
 }
 
 export type ExtractCommandResult<TCommandDescription> =
