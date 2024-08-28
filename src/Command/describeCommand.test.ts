@@ -8,7 +8,6 @@
 // </text>
 
 import {
-  MatrixRoomID,
   MatrixRoomReference,
   MatrixUserID,
   StringRoomID,
@@ -21,6 +20,7 @@ import {
   MatrixUserIDPresentationType,
 } from "../TextReader";
 import { StandardParsedKeywords } from "./ParsedKeywords";
+import { tuple } from "./ParameterParsing";
 
 it("Can define and execute commands.", async function () {
   type Context = {
@@ -39,7 +39,7 @@ it("Can define and execute commands.", async function () {
     ): Promise<Result<boolean>> {
       return await context.banUser(room, user);
     },
-    parameters: [
+    parameters: tuple(
       {
         name: "user",
         acceptor: MatrixUserIDPresentationType,
@@ -47,8 +47,8 @@ it("Can define and execute commands.", async function () {
       {
         name: "target room",
         acceptor: MatrixRoomReferencePresentationType,
-      },
-    ],
+      }
+    ),
   });
   const banResult = await BanCommand.executor(
     {

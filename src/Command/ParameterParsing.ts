@@ -134,10 +134,6 @@ export class StandardCommandParametersDescription<
   }
 }
 
-export type ParameterTupleFromArguments<Arguments extends unknown[]> = {
-  [I in keyof Arguments]: DescribeParameter<Arguments[I]>;
-};
-
 export type ParameterDescriptionsFromArguments<Arguments extends unknown[]> = {
   [I in keyof Arguments]: ParameterDescription<Arguments[I]>;
 };
@@ -233,4 +229,13 @@ export function union(
     schemaType: PresentationSchemaType.Union,
     variants: presentationTypes,
   };
+}
+
+/**
+ * For some reason typescript really struggles to infer tuples.
+ * So we have to use a function to guide the inference.
+ * This is supposed to be used on parameter descriptions.
+ */
+export function tuple<T extends unknown[]>(...args: T): T {
+  return args;
 }
