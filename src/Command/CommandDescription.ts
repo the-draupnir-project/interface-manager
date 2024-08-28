@@ -40,3 +40,8 @@ export interface CommandDescription<
   readonly description?: string | undefined;
   readonly parametersDescription: CommandParametersDescription;
 }
+
+export type ExtractCommandResult<TCommandDescription> =
+  TCommandDescription extends CommandDescription<unknown, infer CommandResult>
+    ? CommandResult
+    : never;

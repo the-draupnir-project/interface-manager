@@ -12,6 +12,7 @@ import {
   Command,
   CommandDescription,
   CompleteCommand,
+  ExtractCommandResult,
   PartialCommand,
 } from "../Command";
 import { MatrixRendererDescription } from "./MatrixRendererDescription";
@@ -37,9 +38,15 @@ export interface MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
     adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext
   ): Promise<Result<CommandResult>>;
-  registerRendererDescription(
-    commandDescription: CommandDescription,
+  registerRendererDescription<TCommandDescription extends CommandDescription>(
+    commandDescription: TCommandDescription,
     rendererDescription: MatrixRendererDescription
+  ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>;
+  describeRenderer<TCommandDescription extends CommandDescription>(
+    commandDescription: TCommandDescription,
+    rendererDescription: DescribeMatrixRenderer<
+      ExtractCommandResult<CommandDescription>
+    >
   ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>;
 }
 
@@ -242,6 +249,18 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     this.renderers.set(commandDescription, rendererDescription);
     return this;
   }
+  public describeRenderer<TCommandDescription extends CommandDescription>(
+    commandDescription: TCommandDescription,
+    rendererDescription: DescribeMatrixRenderer<
+      ExtractCommandResult<TCommandDescription>
+    >
+  ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
+    return this.registerRendererDescription(commandDescription, {
+      ...rendererDescription,
+      isAlwaysSupposedToUseDefaultRenderer:
+        rendererDescription.isAlwaysSupposedToUseDefaultRenderer ?? true,
+    });
+  }
 
   public async parseAndInvoke<CommandResult>(
     partialCommand: PartialCommand,
@@ -265,3 +284,10 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     return await this.invoke(parseResult.ok, adaptorContext, eventContext);
   }
 }
+
+export type DescribeMatrixRenderer<CommandResult> = Omit<
+  MatrixRendererDescription<CommandResult>,
+  "isAlwaysSupposedToUseDefaultRenderer"
+> & {
+  isAlwaysSupposedToUseDefaultRenderer?: boolean;
+};
