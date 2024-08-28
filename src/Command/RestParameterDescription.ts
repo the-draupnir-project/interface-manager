@@ -138,7 +138,12 @@ export class StandardRestDescription<
 export type DescribeRestParameters<
   ExecutorContext = unknown,
   ObjectType = unknown,
-> = Omit<RestDescription<ExecutorContext, ObjectType>, "parseRest">;
+> = Omit<
+  RestDescription<ExecutorContext, ObjectType>,
+  "parseRest" | "acceptor"
+> & {
+  acceptor: PresentationType | PresentationSchema;
+};
 
 export function describeRestParameters<ExecutorContext, ObjectType>(
   options: DescribeRestParameters<ExecutorContext, ObjectType>
