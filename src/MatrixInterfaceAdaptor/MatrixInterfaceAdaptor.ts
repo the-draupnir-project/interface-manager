@@ -13,7 +13,10 @@ import {
   CommandDescription,
   CompleteCommand,
   ExtractCommandResult,
+  ParameterDescription,
   PartialCommand,
+  Presentation,
+  PromptRequiredError,
 } from "../Command";
 import { MatrixRendererDescription } from "./MatrixRendererDescription";
 import { DocumentNode } from "../DeadDocument";
@@ -24,20 +27,36 @@ export interface MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
    * Invoke the command object, running the command executor and then calling
    * each of the configured renderers for the interface adaptor.
    */
-  invoke<CommandResult>(
+  invoke(
     command: CompleteCommand,
     adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext
-  ): Promise<Result<CommandResult>>;
+  ): Promise<Result<void>>;
   /**
    * Parse the arguments to the command description and then call `invoke`.
    * The commandDesignator is required so that we can produce a `Command` object.
    */
-  parseAndInvoke<CommandResult>(
+  parseAndInvoke(
     partialCommand: PartialCommand,
     adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext
-  ): Promise<Result<CommandResult>>;
+  ): Promise<Result<void>>;
+  promptDefault<TPresentation extends Presentation>(
+    adaptorContext: AdaptorContext,
+    eventContext: MatrixEventContext,
+    parameter: ParameterDescription<AdaptorContext>,
+    command: PartialCommand,
+    defaultPrompt: TPresentation,
+    existingArguments: Presentation[]
+  ): Promise<Result<void>>;
+  promptSuggestions<TPresentation extends Presentation>(
+    adaptorContext: AdaptorContext,
+    eventContext: MatrixEventContext,
+    parameter: ParameterDescription<AdaptorContext>,
+    command: PartialCommand,
+    suggestions: TPresentation[],
+    existingArguments: Presentation[]
+  ): Promise<Result<void>>;
   registerRendererDescription<TCommandDescription extends CommandDescription>(
     commandDescription: TCommandDescription,
     rendererDescription: MatrixRendererDescription
@@ -89,6 +108,14 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   >();
   public constructor(
     private readonly adaptorToCommandContextTranslator: AdaptorToCommandContextTranslator<AdaptorContext>,
+    public readonly promptDefault: MatrixInterfaceAdaptor<
+      AdaptorContext,
+      MatrixEventContext
+    >["promptDefault"],
+    public readonly promptSuggestions: MatrixInterfaceAdaptor<
+      AdaptorContext,
+      MatrixEventContext
+    >["promptSuggestions"],
     /** Render the result and return an error if there was a problem while rendering. */
     private readonly defaultRenderer: MatrixInterfaceDefaultRenderer<
       AdaptorContext,
@@ -262,24 +289,70 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     });
   }
 
-  public async parseAndInvoke<CommandResult>(
+  public async parseAndInvoke(
     partialCommand: PartialCommand,
     adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext
-  ): Promise<Result<CommandResult>> {
+  ): Promise<Result<void>> {
     const renderer = this.findRendererForCommandDescription(
       partialCommand.description
     );
+    const commandArguments = partialCommand.stream.rest();
     const parseResult =
       partialCommand.description.parametersDescription.parse(partialCommand);
     if (isError(parseResult)) {
-      return (await this.runRenderersOnCommandResult(
-        partialCommand,
-        parseResult,
-        renderer,
-        adaptorContext,
-        eventContext
-      )) as Result<CommandResult>;
+      if (parseResult.error instanceof PromptRequiredError) {
+        const parameter = parseResult.error
+          .parameterRequiringPrompt as ParameterDescription<AdaptorContext>;
+        if (parameter.prompt === undefined) {
+          throw new TypeError(
+            `A PromptRequiredError was given for a parameter which doesn't support prompts, this shouldn't happen`
+          );
+        }
+        const promptOptionsResult = await parameter.prompt(
+          adaptorContext,
+          parameter
+        );
+        if (isError(promptOptionsResult)) {
+          return promptOptionsResult.elaborate(
+            `Failed to get prompt options for ${parameter.name} while parsing the command "${partialCommand.designator.join(" ")}".`
+          );
+        }
+        const promptOptions = promptOptionsResult.ok;
+        const promptResult =
+          promptOptions.default === undefined
+            ? await this.promptSuggestions(
+                adaptorContext,
+                eventContext,
+                parameter,
+                partialCommand,
+                promptOptions.suggestions,
+                commandArguments
+              )
+            : await this.promptDefault(
+                adaptorContext,
+                eventContext,
+                parameter,
+                partialCommand,
+                promptOptions.default,
+                commandArguments
+              );
+        if (isError(promptResult)) {
+          return promptResult.elaborate(
+            `Failed to prompt the user for ${parameter.name} while parsing the command "${partialCommand.designator.join(" ")}".`
+          );
+        } else {
+          return Ok(undefined);
+        }
+      } else {
+        return (await this.runRenderersOnCommandResult(
+          partialCommand,
+          parseResult,
+          renderer,
+          adaptorContext,
+          eventContext
+        )) as Result<void>;
+      }
     }
     return await this.invoke(parseResult.ok, adaptorContext, eventContext);
   }

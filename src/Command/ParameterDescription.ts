@@ -12,13 +12,14 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
+import { Result } from "@gnuxie/typescript-result";
 import { PresentationSchema } from "./PresentationSchema";
 import { PromptOptions } from "./PromptForAccept";
 
 export type Prompt<ExecutorContext, ObjectType = unknown> = (
   context: ExecutorContext,
   description: ParameterDescription<ExecutorContext>
-) => Promise<PromptOptions<ObjectType>>;
+) => Promise<Result<PromptOptions<ObjectType>>>;
 
 export interface ParameterDescription<ExecutorContext = unknown> {
   name: string;

@@ -10,17 +10,11 @@
 import { Presentation } from "./Presentation";
 import { StandardPresentationArgumentStream } from "./PresentationStream";
 
-// what i'm worried about this is that when defining commands outside the context
-// of the interface adaptor, we can't specify presentation types easily.
-// surely prompts are specific to the adaptor and not the command? idk.
-// saying what the prompts can be isn't part of the adaptor, like this.
-// but saying how to present them (their presentation types)is part of the adaptor
-// hopefully we can just include a simple wrap prompts with thing.
-// Maybe we also just include some dumb option to work that all out for us
-// in the adaptor, like `printReadbly` kinda does at the moment in Draupnir.
+// we need a `present(PresentationType, Object)` method on something so that it is easy to create
+// presentations.
 export interface PromptOptions<ObjectType = unknown> {
-  readonly suggestions: ObjectType[];
-  readonly default?: ObjectType;
+  readonly suggestions: Presentation<ObjectType>[];
+  readonly default?: Presentation<ObjectType>;
 }
 
 /**
