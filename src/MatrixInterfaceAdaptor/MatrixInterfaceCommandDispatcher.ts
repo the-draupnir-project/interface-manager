@@ -35,6 +35,7 @@ export type CommandFailedCB<AdaptorContext, MatrixEventContext> = (
 export type CommandUncaughtErrorCB<AdaptorContext, MatrixEventContext> = (
   AdaptorContext: AdaptorContext,
   eventContext: MatrixEventContext,
+  commandBody: string,
   error: Error
 ) => void;
 export type CommandPrefixExtractor = (body: string) => string | undefined;
@@ -139,6 +140,7 @@ export class StandardMatrixInterfaceCommandDispatcher<
               this.commandUncaughtErrorCB(
                 this.adaptorContext,
                 eventContext,
+                body,
                 error
               );
             } else {
@@ -150,7 +152,12 @@ export class StandardMatrixInterfaceCommandDispatcher<
         );
     } catch (error) {
       if (error instanceof Error) {
-        this.commandUncaughtErrorCB(this.adaptorContext, eventContext, error);
+        this.commandUncaughtErrorCB(
+          this.adaptorContext,
+          eventContext,
+          body,
+          error
+        );
       } else {
         throw new TypeError(
           // I don't know what else we're going to do with it...
