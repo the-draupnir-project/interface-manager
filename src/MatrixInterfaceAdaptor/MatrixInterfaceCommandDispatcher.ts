@@ -10,6 +10,7 @@
 import { ResultError, isError } from "@gnuxie/typescript-result";
 import { MatrixInterfaceAdaptor } from "./MatrixInterfaceAdaptor";
 import {
+  Command,
   CommandDescription,
   CommandTable,
   Presentation,
@@ -28,6 +29,7 @@ export interface MatrixInterfaceCommandDispatcher<MatrixEventContext> {
 export type CommandFailedCB<AdaptorContext, MatrixEventContext> = (
   adaptorContext: AdaptorContext,
   eventContext: MatrixEventContext,
+  command: Command,
   error: ResultError
 ) => void;
 export type CommandUncaughtErrorCB<AdaptorContext, MatrixEventContext> = (
@@ -114,18 +116,20 @@ export class StandardMatrixInterfaceCommandDispatcher<
       const normalisedDesignator = normalisedCommand
         .slice(0, stream.getPosition())
         .map((p) => p.object) as string[];
+      const partialCommand = makePartialCommand(
+        stream,
+        commandToUse,
+        normalisedDesignator
+      );
       void this.interfaceAdaptor
-        .parseAndInvoke(
-          makePartialCommand(stream, commandToUse, normalisedDesignator),
-          this.adaptorContext,
-          eventContext
-        )
+        .parseAndInvoke(partialCommand, this.adaptorContext, eventContext)
         .then(
           (result) => {
             if (isError(result)) {
               this.commandFailedCB(
                 this.adaptorContext,
                 eventContext,
+                partialCommand,
                 result.error
               );
             }
