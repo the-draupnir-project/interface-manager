@@ -13,18 +13,12 @@
 // </text>
 
 /**
- * We might want to mix presentation methods into the presentation type
- * behind mirror chord in the future just for convienance.
- * I guess the inverse could also be done, that the presentation type
- * is mirror chord in the renderer to access the presentation method...
- * i like that. but then i can't remember if we can even use objects
- * as indexes in JS lol. but in that case we can just give presentation types
- * a mirror chord symbol each, and ditch the interning table, kinda like typebox.
- * ... we could just use the presentation type name for the mirror chord to
- * access the render method on the renderer....
+ * This exists because typescript is bad and if you
+ * have the wrap function on in a type assertion, then
+ * it will complain because the argument is not assignable to unknown.
+ * As obviously the argument in the wrapper function is specific.
  */
-
-export interface PresentationType<ObjectType = unknown> {
+export interface PresentationTypeWithoutWrap<ObjectType = unknown> {
   name: string;
   /**
    * Used when creating a presentation to ensure value is ObjectType.
@@ -34,12 +28,17 @@ export interface PresentationType<ObjectType = unknown> {
   validator: (value: unknown) => value is ObjectType;
 }
 
+export type PresentationType<ObjectType = unknown> =
+  PresentationTypeWithoutWrap<ObjectType> & {
+    wrap: (object: ObjectType) => Presentation<ObjectType>;
+  };
+
 export type ObjectTypeFromPresentationType<T> =
-  T extends PresentationType<infer ObjectType> ? ObjectType : never;
+  T extends PresentationTypeWithoutWrap<infer ObjectType> ? ObjectType : never;
 
 export interface Presentation<ObjectType = unknown> {
   object: ObjectType;
-  presentationType: PresentationType;
+  presentationType: PresentationTypeWithoutWrap<ObjectType>;
 }
 
 const PRESENTATION_TYPES = new Map<
@@ -47,10 +46,12 @@ const PRESENTATION_TYPES = new Map<
   PresentationType
 >();
 
-export function findPresentationType(name: string): PresentationType {
+export function findPresentationType<ObjectType = unknown>(
+  name: string
+): PresentationType<ObjectType> {
   const entry = PRESENTATION_TYPES.get(name);
   if (entry) {
-    return entry;
+    return entry as PresentationType<ObjectType>;
   } else {
     throw new TypeError(
       `presentation type with the name: ${name} was not registered`
@@ -67,7 +68,7 @@ export function registerPresentationType<ObjectType>(
       `presentation type with the name: ${name} has already been registered`
     );
   }
-  PRESENTATION_TYPES.set(name, presentationType);
+  PRESENTATION_TYPES.set(name, presentationType as PresentationType);
   return presentationType;
 }
 

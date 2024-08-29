@@ -7,7 +7,7 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { Presentation, PresentationType } from "./Presentation";
+import { Presentation, PresentationTypeWithoutWrap } from "./Presentation";
 
 export enum PresentationSchemaType {
   Single = "Single",
@@ -16,12 +16,12 @@ export enum PresentationSchemaType {
 }
 
 type ObjectTypeForSingleSchema<T extends SinglePresentationSchema> =
-  T["presentationType"] extends PresentationType<infer ObjectType>
+  T["presentationType"] extends PresentationTypeWithoutWrap<infer ObjectType>
     ? ObjectType
     : never;
 
 type ObjectTypeForUnionSchema<T extends UnionPresentationSchema> =
-  T["variants"] extends PresentationType<infer ObjectType>[]
+  T["variants"] extends PresentationTypeWithoutWrap<infer ObjectType>[]
     ? ObjectType
     : never;
 
@@ -44,12 +44,12 @@ type ObjectTypeForTopSchema = unknown;
  */
 export type SinglePresentationSchema<ObjectType = unknown> = {
   readonly schemaType: PresentationSchemaType.Single;
-  readonly presentationType: PresentationType<ObjectType>;
+  readonly presentationType: PresentationTypeWithoutWrap<ObjectType>;
 };
 
 export type UnionPresentationSchema<ObjectType = unknown> = {
   readonly schemaType: PresentationSchemaType.Union;
-  readonly variants: PresentationType<ObjectType>[];
+  readonly variants: PresentationTypeWithoutWrap<ObjectType>[];
 };
 
 export type TopPresentationSchema = {

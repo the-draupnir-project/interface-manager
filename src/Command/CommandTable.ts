@@ -12,8 +12,9 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { makeStringPresentation } from "../TextReader/TextPresentationTypes";
+import { StringPresentationType } from "../TextReader";
 import { CommandDescription } from "./CommandDescription";
+import { Presentation } from "./Presentation";
 import {
   PresentationArgumentStream,
   StandardPresentationArgumentStream,
@@ -205,7 +206,9 @@ export class StandardCommandTable implements CommandTable {
       if (
         this.findAMatchingCommand(
           new StandardPresentationArgumentStream(
-            commandTableEntry.designator.map(makeStringPresentation)
+            commandTableEntry.designator.map((d) =>
+              StringPresentationType.wrap(d)
+            ) as Presentation[]
           )
         )
       ) {

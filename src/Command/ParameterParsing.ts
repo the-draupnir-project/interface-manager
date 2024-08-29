@@ -29,7 +29,7 @@ import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
 import {
   ObjectTypeFromPresentationType,
-  PresentationType,
+  PresentationTypeWithoutWrap,
 } from "./Presentation";
 import {
   PresentationSchema,
@@ -186,10 +186,12 @@ export type DescribeParameter<ObjectType = unknown> = Omit<
   ParameterDescription<ObjectType>,
   "acceptor"
 > & {
-  acceptor: PresentationSchema<ObjectType> | PresentationType<ObjectType>;
+  acceptor:
+    | PresentationSchema<ObjectType>
+    | PresentationTypeWithoutWrap<ObjectType>;
 };
 
-export type ObjectTypeFromAcceptor<T> = T extends PresentationType
+export type ObjectTypeFromAcceptor<T> = T extends PresentationTypeWithoutWrap
   ? ObjectTypeFromPresentationType<T>
   : T extends PresentationSchema
     ? ObjectTypeFromPresentationType<T>
@@ -223,7 +225,7 @@ function describeParameter<ObjectType>(
 }
 
 export function union(
-  ...presentationTypes: PresentationType[]
+  ...presentationTypes: PresentationTypeWithoutWrap[]
 ): UnionPresentationSchema {
   return {
     schemaType: PresentationSchemaType.Union,

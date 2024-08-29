@@ -19,8 +19,8 @@ import {
   makePartialCommand,
 } from "../Command";
 import {
+  StringPresentationType,
   TextPresentationRenderer,
-  makeStringPresentation,
   readCommand,
 } from "../TextReader";
 
@@ -178,7 +178,7 @@ export class StandardMatrixInterfaceCommandDispatcher<
         return; // This message in reality probably is not a command.
       }
       const normalisedCommand = [
-        makeStringPresentation(prefix),
+        StringPresentationType.wrap(prefix),
         ...readResult.slice(1),
       ];
       this.handleCommandFromPresentationStream(

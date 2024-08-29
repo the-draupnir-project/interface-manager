@@ -29,20 +29,18 @@ import { TextPresentationRenderer } from "./TextPresentationRenderer";
  * point in that? WHy not just make a real type for a person's name?
  */
 
-// is there any reason to include a table? when we could just use this?
 export const StringPresentationType = definePresentationType({
   name: "string",
   validator: function (value): value is string {
     return typeof value === "string";
   },
+  wrap(string: string): Presentation<string> {
+    return Object.freeze({
+      object: string,
+      presentationType: StringPresentationType,
+    });
+  },
 });
-
-export function makeStringPresentation(string: string): Presentation<string> {
-  return Object.freeze({
-    object: string,
-    presentationType: StringPresentationType,
-  });
-}
 
 TextPresentationRenderer.registerPresentationRenderer<string>(
   StringPresentationType,
@@ -56,16 +54,13 @@ export const KeywordPresentationType = definePresentationType({
   validator: function (value): value is Keyword {
     return value instanceof Keyword;
   },
+  wrap(keyword: Keyword): Presentation<Keyword> {
+    return Object.freeze({
+      object: keyword,
+      presentationType: KeywordPresentationType,
+    });
+  },
 });
-
-export function makeKeywordPresentation(
-  keyword: Keyword
-): Presentation<Keyword> {
-  return Object.freeze({
-    object: keyword,
-    presentationType: KeywordPresentationType,
-  });
-}
 
 TextPresentationRenderer.registerPresentationRenderer<Keyword>(
   KeywordPresentationType,
@@ -79,16 +74,13 @@ export const MatrixRoomReferencePresentationType = definePresentationType({
   validator: function (value): value is MatrixRoomReference {
     return value instanceof MatrixRoomID || value instanceof MatrixRoomAlias;
   },
+  wrap(room: MatrixRoomReference): Presentation<MatrixRoomReference> {
+    return Object.freeze({
+      object: room,
+      presentationType: MatrixRoomReferencePresentationType,
+    });
+  },
 });
-
-export function makeMatrixRoomReferencePresentation(
-  room: MatrixRoomReference
-): Presentation<MatrixRoomReference> {
-  return Object.freeze({
-    object: room,
-    presentationType: MatrixRoomReferencePresentationType,
-  });
-}
 
 TextPresentationRenderer.registerPresentationRenderer<MatrixRoomReference>(
   MatrixRoomReferencePresentationType,
@@ -102,16 +94,13 @@ export const MatrixUserIDPresentationType = definePresentationType({
   validator: function (value): value is MatrixUserID {
     return value instanceof MatrixUserID;
   },
+  wrap(userID: MatrixUserID): Presentation<MatrixUserID> {
+    return Object.freeze({
+      object: userID,
+      presentationType: MatrixUserIDPresentationType,
+    });
+  },
 });
-
-export function makeMatrixUserIDPresentation(
-  value: MatrixUserID
-): Presentation<MatrixUserID> {
-  return Object.freeze({
-    object: value,
-    presentationType: MatrixUserIDPresentationType,
-  });
-}
 
 TextPresentationRenderer.registerPresentationRenderer<MatrixUserID>(
   MatrixUserIDPresentationType,
@@ -127,6 +116,12 @@ export const MatrixEventReferencePresentationType = definePresentationType({
       value instanceof MatrixEventViaAlias ||
       value instanceof MatrixEventViaRoomID
     );
+  },
+  wrap(event: MatrixEventReference): Presentation<MatrixEventReference> {
+    return Object.freeze({
+      object: event,
+      presentationType: MatrixEventReferencePresentationType,
+    });
   },
 });
 

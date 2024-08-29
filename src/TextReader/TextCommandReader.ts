@@ -19,14 +19,14 @@ import {
   isStringUserID,
 } from "@the-draupnir-project/matrix-basic-types";
 import { Presentation } from "../Command/Presentation";
-import {
-  makeKeywordPresentation,
-  makeMatrixEventReferencePresentation,
-  makeMatrixRoomReferencePresentation,
-  makeMatrixUserIDPresentation,
-  makeStringPresentation,
-} from "./TextPresentationTypes";
 import { Keyword } from "../Command/Keyword";
+import {
+  KeywordPresentationType,
+  MatrixEventReferencePresentationType,
+  MatrixRoomReferencePresentationType,
+  MatrixUserIDPresentationType,
+  StringPresentationType,
+} from "./TextPresentationTypes";
 
 /** Whitespace we want to nom. */
 const WHITESPACE = [" ", "\r", "\f", "\v", "\n", "\t"];
@@ -152,7 +152,7 @@ function applyPostReadTransformersToReadItem(
         }
       }
     }
-    return makeStringPresentation(item);
+    return StringPresentationType.wrap(item);
   }
   return item;
 }
@@ -193,7 +193,7 @@ function readRoomIDOrAlias(
   if (!isStringRoomID(wholeWord) && !isStringRoomAlias(wholeWord)) {
     return wholeWord;
   }
-  return makeMatrixRoomReferencePresentation(
+  return MatrixRoomReferencePresentationType.wrap(
     MatrixRoomReference.fromRoomIDOrAlias(wholeWord)
   );
 }
@@ -221,7 +221,7 @@ defineReadItem(
     readUntil(/\s/, stream, word);
     const maybeUserID = word.join("");
     if (isStringUserID(maybeUserID)) {
-      return makeMatrixUserIDPresentation(new MatrixUserID(maybeUserID));
+      return MatrixUserIDPresentationType.wrap(new MatrixUserID(maybeUserID));
     } else {
       return maybeUserID;
     }
@@ -237,11 +237,11 @@ defineReadItem(
 function readKeyword(stream: StringStream): Presentation<Keyword> {
   readUntil(/[^-:]/, stream, []);
   if (stream.peekChar() === undefined) {
-    return makeKeywordPresentation(new Keyword(""));
+    return KeywordPresentationType.wrap(new Keyword(""));
   }
   const word: string[] = [stream.readChar()];
   readUntil(/[\s]/, stream, word);
-  return makeKeywordPresentation(new Keyword(word.join("")));
+  return KeywordPresentationType.wrap(new Keyword(word.join("")));
 }
 
 defineReadItem("-", readKeyword);
@@ -259,16 +259,16 @@ definePostReadReplace(/^https:\/\/matrix\.to/, (input) => {
     if (isError(eventResult)) {
       return input;
     } else {
-      return makeMatrixEventReferencePresentation(eventResult.ok);
+      return MatrixEventReferencePresentationType.wrap(eventResult.ok);
     }
   } else if (url.userID !== undefined) {
-    return makeMatrixUserIDPresentation(new MatrixUserID(url.userID));
+    return MatrixUserIDPresentationType.wrap(new MatrixUserID(url.userID));
   } else {
     const roomResult = MatrixRoomReference.fromPermalink(input);
     if (isError(roomResult)) {
       return input;
     } else {
-      return makeMatrixRoomReferencePresentation(roomResult.ok);
+      return MatrixRoomReferencePresentationType.wrap(roomResult.ok);
     }
   }
 });

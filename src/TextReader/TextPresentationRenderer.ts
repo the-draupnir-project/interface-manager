@@ -7,7 +7,11 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { Presentation, PresentationType } from "../Command";
+import {
+  Presentation,
+  PresentationType,
+  PresentationTypeWithoutWrap,
+} from "../Command";
 
 export type TextPresentationRenderFunction<ObjectType = unknown> = (
   presentation: Presentation<ObjectType>
@@ -15,7 +19,7 @@ export type TextPresentationRenderFunction<ObjectType = unknown> = (
 
 export type TextPresentationRenderer = {
   registerPresentationRenderer<ObjectType>(
-    type: PresentationType,
+    type: PresentationType<ObjectType>,
     renderFunction: TextPresentationRenderFunction<ObjectType>
   ): TextPresentationRenderer;
   findPresentationRenderer(
@@ -28,29 +32,29 @@ export type TextPresentationRenderer = {
 };
 
 const TEXT_PRESENTATION_RENDERERS = new Map<
-  PresentationType,
+  PresentationTypeWithoutWrap,
   TextPresentationRenderFunction
 >();
 
 export const TextPresentationRenderer: TextPresentationRenderer = Object.freeze(
   {
     registerPresentationRenderer<ObjectType>(
-      type: PresentationType,
+      type: PresentationType<ObjectType>,
       renderFunction: TextPresentationRenderFunction<ObjectType>
     ) {
-      if (TEXT_PRESENTATION_RENDERERS.has(type)) {
+      if (TEXT_PRESENTATION_RENDERERS.has(type as PresentationType)) {
         throw new TypeError(
           `There is already a text renderer registered for the presentation type ${type.name}`
         );
       }
       TEXT_PRESENTATION_RENDERERS.set(
-        type,
+        type as PresentationType,
         renderFunction as TextPresentationRenderFunction
       );
       return this;
     },
     findPresentationRenderer(
-      type: PresentationType
+      type: PresentationTypeWithoutWrap
     ): TextPresentationRenderFunction | undefined {
       return TEXT_PRESENTATION_RENDERERS.get(type);
     },

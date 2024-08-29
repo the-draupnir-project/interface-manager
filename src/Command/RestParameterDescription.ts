@@ -14,7 +14,7 @@
 
 import { Ok, Result, isError } from "@gnuxie/typescript-result";
 import { ParameterDescription, Prompt } from "./ParameterDescription";
-import { Presentation, PresentationType } from "./Presentation";
+import { Presentation, PresentationTypeWithoutWrap } from "./Presentation";
 import { KeywordParser } from "./KeywordParameterDescription";
 import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
@@ -65,7 +65,7 @@ export class StandardRestDescription<
   constructor(
     public readonly name: string,
     /** The presentation type of each item. */
-    acceptor: PresentationType | PresentationSchema,
+    acceptor: PresentationTypeWithoutWrap | PresentationSchema,
     public readonly prompt?: Prompt<ExecutorContext, ObjectType>,
     public readonly description?: string
   ) {
@@ -142,7 +142,7 @@ export type DescribeRestParameters<
   RestDescription<ExecutorContext, ObjectType>,
   "parseRest" | "acceptor"
 > & {
-  acceptor: PresentationType | PresentationSchema;
+  acceptor: PresentationTypeWithoutWrap | PresentationSchema;
 };
 
 export function describeRestParameters<ExecutorContext, ObjectType>(
