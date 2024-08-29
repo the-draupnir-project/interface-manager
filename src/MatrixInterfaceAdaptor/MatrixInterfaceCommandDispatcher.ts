@@ -14,15 +14,24 @@ import {
   CommandDescription,
   CommandTable,
   Presentation,
+  PresentationArgumentStream,
   StandardPresentationArgumentStream,
   makePartialCommand,
 } from "../Command";
-import { makeStringPresentation, readCommand } from "../TextReader";
+import {
+  TextPresentationRenderer,
+  makeStringPresentation,
+  readCommand,
+} from "../TextReader";
 
 export interface MatrixInterfaceCommandDispatcher<MatrixEventContext> {
   handleCommandMessageEvent(
     eventContext: MatrixEventContext,
     body: string
+  ): void;
+  handleCommandFromPresentationStream(
+    eventContext: MatrixEventContext,
+    stream: PresentationArgumentStream
   ): void;
 }
 
@@ -88,33 +97,15 @@ export class StandardMatrixInterfaceCommandDispatcher<
     // nothing to do.
   }
 
-  handleCommandMessageEvent(
+  handleCommandFromPresentationStream(
     eventContext: MatrixEventContext,
-    body: string
+    stream: PresentationArgumentStream
   ): void {
     try {
-      const readResult = readCommand(body);
-      const firstItem = readResult.at(0);
-      if (firstItem === undefined || typeof firstItem.object !== "string") {
-        return;
-      }
-      const prefix = this.prefixExtractor(firstItem.object);
-      if (prefix === undefined) {
-        return; // This message in reality probably is not a command.
-      }
-      const normalisedCommand = [
-        makeStringPresentation(prefix),
-        ...readResult.slice(1),
-      ];
-      this.logCurentCommandCB(
-        this.adaptorContext,
-        eventContext,
-        normalisedCommand
-      );
-      const stream = new StandardPresentationArgumentStream(normalisedCommand);
+      this.logCurentCommandCB(this.adaptorContext, eventContext, stream.source);
       const commandToUse =
         this.comandTable.findAMatchingCommand(stream) ?? this.helpCommand;
-      const normalisedDesignator = normalisedCommand
+      const normalisedDesignator = stream.source
         .slice(0, stream.getPosition())
         .map((p) => p.object) as string[];
       const partialCommand = makePartialCommand(
@@ -140,7 +131,9 @@ export class StandardMatrixInterfaceCommandDispatcher<
               this.commandUncaughtErrorCB(
                 this.adaptorContext,
                 eventContext,
-                body,
+                stream.source
+                  .map((p) => TextPresentationRenderer.render(p))
+                  .join(" "),
                 error
               );
             } else {
@@ -150,7 +143,49 @@ export class StandardMatrixInterfaceCommandDispatcher<
             }
           }
         );
-    } catch (error) {
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this.commandUncaughtErrorCB(
+          this.adaptorContext,
+          eventContext,
+          stream.source
+            .map((p) => TextPresentationRenderer.render(p))
+            .join(" "),
+          error
+        );
+      } else {
+        throw new TypeError(
+          // I don't know what else we're going to do with it...
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          `Something is throwing things that are not errors ${error})}`
+        );
+      }
+    }
+  }
+
+  handleCommandMessageEvent(
+    eventContext: MatrixEventContext,
+    body: string
+  ): void {
+    try {
+      const readResult = readCommand(body);
+      const firstItem = readResult.at(0);
+      if (firstItem === undefined || typeof firstItem.object !== "string") {
+        return;
+      }
+      const prefix = this.prefixExtractor(firstItem.object);
+      if (prefix === undefined) {
+        return; // This message in reality probably is not a command.
+      }
+      const normalisedCommand = [
+        makeStringPresentation(prefix),
+        ...readResult.slice(1),
+      ];
+      this.handleCommandFromPresentationStream(
+        eventContext,
+        new StandardPresentationArgumentStream(normalisedCommand)
+      );
+    } catch (error: unknown) {
       if (error instanceof Error) {
         this.commandUncaughtErrorCB(
           this.adaptorContext,
