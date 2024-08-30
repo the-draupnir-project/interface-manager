@@ -14,8 +14,11 @@ export interface MatrixRendererDescription<CommandResult = unknown> {
   /**
    * Render the result of a command invocation to DeadDocument.
    * The interface adaptor will then render this back to Matrix using an event.
+   * @returns either the rendererd command or `undefined` if the renderer wants to rely on the default or arbritrary renderer.
    */
-  JSXRenderer?(commandResult: Result<CommandResult>): Result<DocumentNode>;
+  JSXRenderer?(
+    commandResult: Result<CommandResult>
+  ): Result<DocumentNode | undefined>;
   /**
    * Whether to always use the default renderer regardless of supporting renderers.
    * For example, Draupnir uses a renderer that adds tick and cross emoji to

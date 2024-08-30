@@ -243,6 +243,9 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
       if (isError(document)) {
         return document;
       }
+      if (document.ok === undefined) {
+        return Ok(undefined); // Renderer is telling us it doesn't want to render anything.
+      }
       return await this.matrixEventsFromDeadDocument(
         adaptorContext,
         eventContext,
