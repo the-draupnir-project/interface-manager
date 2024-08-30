@@ -27,17 +27,14 @@ import {
 import { CompleteCommand, PartialCommand } from "./Command";
 import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
+import { PresentationTypeWithoutWrap } from "./Presentation";
 import {
-  ObjectTypeFromPresentationType,
-  PresentationTypeWithoutWrap,
-} from "./Presentation";
-import {
-  ObjectTypeForPresentationSchema,
   PresentationSchema,
   PresentationSchemaType,
   checkPresentationSchema,
   printPresentationSchema,
 } from "./PresentationSchema";
+import { ObjectTypeFromAcceptor } from "./PresentationSchema";
 
 export type ParameterParseFunction<
   Arguments extends unknown[] = unknown[],
@@ -190,12 +187,6 @@ export type DescribeParameter<ObjectType = unknown> = Omit<
     | PresentationSchema<ObjectType>
     | PresentationTypeWithoutWrap<ObjectType>;
 };
-
-export type ObjectTypeFromAcceptor<T> = T extends PresentationTypeWithoutWrap
-  ? ObjectTypeFromPresentationType<T>
-  : T extends PresentationSchema
-    ? ObjectTypeForPresentationSchema<T>
-    : never;
 
 export type ExtractParameterObjectType<T extends DescribeParameter> =
   ObjectTypeFromAcceptor<T["acceptor"]>;

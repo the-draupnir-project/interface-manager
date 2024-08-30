@@ -7,7 +7,11 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { Presentation, PresentationTypeWithoutWrap } from "./Presentation";
+import {
+  ObjectTypeFromPresentationType,
+  Presentation,
+  PresentationTypeWithoutWrap,
+} from "./Presentation";
 
 export enum PresentationSchemaType {
   Single = "Single",
@@ -104,15 +108,40 @@ export function printPresentationSchema(schema: PresentationSchema): string {
   }
 }
 
-type UnionOfObjectTypes<T extends PresentationTypeWithoutWrap[]> = {
-  [P in keyof T]: T[P] extends PresentationTypeWithoutWrap<infer U> ? U : never;
+type Acceptor<ObjectType = unknown> =
+  | PresentationSchema<ObjectType>
+  | PresentationTypeWithoutWrap<ObjectType>;
+export type ObjectTypeFromAcceptor<T> = T extends PresentationTypeWithoutWrap
+  ? ObjectTypeFromPresentationType<T>
+  : T extends PresentationSchema
+    ? ObjectTypeForPresentationSchema<T>
+    : never;
+
+type UnionOfObjectTypes<T extends Acceptor[]> = {
+  [P in keyof T]: T[P] extends Acceptor<infer U> ? U : never;
 }[number];
 
-export function union<TPresentationTypes extends PresentationTypeWithoutWrap[]>(
-  ...presentationTypes: TPresentationTypes
-): UnionPresentationSchema<UnionOfObjectTypes<TPresentationTypes>> {
+export function union<
+  TAcceptor extends (PresentationTypeWithoutWrap | UnionPresentationSchema)[],
+>(
+  ...acceptors: TAcceptor
+): UnionPresentationSchema<UnionOfObjectTypes<TAcceptor>> {
+  type PresentationTypeForUnion = PresentationTypeWithoutWrap<
+    UnionOfObjectTypes<TAcceptor>
+  >;
+  const presentationTypes = acceptors.reduce<PresentationTypeForUnion[]>(
+    (acc, acceptor) => {
+      if ("schemaType" in acceptor) {
+        acc.push(...(acceptor.variants as PresentationTypeForUnion[]));
+      } else {
+        acc.push(acceptor as PresentationTypeForUnion);
+      }
+      return acc;
+    },
+    []
+  );
   return {
     schemaType: PresentationSchemaType.Union,
     variants: presentationTypes,
-  } as UnionPresentationSchema<UnionOfObjectTypes<TPresentationTypes>>;
+  } as UnionPresentationSchema<UnionOfObjectTypes<TAcceptor>>;
 }
