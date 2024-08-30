@@ -32,9 +32,9 @@ import {
   PresentationTypeWithoutWrap,
 } from "./Presentation";
 import {
+  ObjectTypeForPresentationSchema,
   PresentationSchema,
   PresentationSchemaType,
-  UnionPresentationSchema,
   checkPresentationSchema,
   printPresentationSchema,
 } from "./PresentationSchema";
@@ -194,7 +194,7 @@ export type DescribeParameter<ObjectType = unknown> = Omit<
 export type ObjectTypeFromAcceptor<T> = T extends PresentationTypeWithoutWrap
   ? ObjectTypeFromPresentationType<T>
   : T extends PresentationSchema
-    ? ObjectTypeFromPresentationType<T>
+    ? ObjectTypeForPresentationSchema<T>
     : never;
 
 export type ExtractParameterObjectType<T extends DescribeParameter> =
@@ -222,15 +222,6 @@ function describeParameter<ObjectType>(
       },
     };
   }
-}
-
-export function union(
-  ...presentationTypes: PresentationTypeWithoutWrap[]
-): UnionPresentationSchema {
-  return {
-    schemaType: PresentationSchemaType.Union,
-    variants: presentationTypes,
-  };
 }
 
 /**

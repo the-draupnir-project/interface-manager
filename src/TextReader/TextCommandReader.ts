@@ -11,6 +11,8 @@ import { StringStream } from "@gnuxie/super-cool-stream";
 import { isError } from "@gnuxie/typescript-result";
 import {
   MatrixEventReference,
+  MatrixRoomAlias,
+  MatrixRoomID,
   MatrixRoomReference,
   MatrixUserID,
   Permalinks,
@@ -23,7 +25,8 @@ import { Keyword } from "../Command/Keyword";
 import {
   KeywordPresentationType,
   MatrixEventReferencePresentationType,
-  MatrixRoomReferencePresentationType,
+  MatrixRoomAliasPresentationType,
+  MatrixRoomIDPresentationType,
   MatrixUserIDPresentationType,
   StringPresentationType,
 } from "./TextPresentationTypes";
@@ -190,12 +193,13 @@ function readRoomIDOrAlias(
   }
   readUntil(/\s/, stream, word);
   const wholeWord = word.join("");
-  if (!isStringRoomID(wholeWord) && !isStringRoomAlias(wholeWord)) {
+  if (isStringRoomID(wholeWord)) {
+    return MatrixRoomIDPresentationType.wrap(new MatrixRoomID(wholeWord));
+  } else if (isStringRoomAlias(wholeWord)) {
+    return MatrixRoomAliasPresentationType.wrap(new MatrixRoomAlias(wholeWord));
+  } else {
     return wholeWord;
   }
-  return MatrixRoomReferencePresentationType.wrap(
-    MatrixRoomReference.fromRoomIDOrAlias(wholeWord)
-  );
 }
 
 /**
@@ -268,7 +272,11 @@ definePostReadReplace(/^https:\/\/matrix\.to/, (input) => {
     if (isError(roomResult)) {
       return input;
     } else {
-      return MatrixRoomReferencePresentationType.wrap(roomResult.ok);
+      if (roomResult.ok instanceof MatrixRoomID) {
+        return MatrixRoomIDPresentationType.wrap(roomResult.ok);
+      } else {
+        return MatrixRoomAliasPresentationType.wrap(roomResult.ok);
+      }
     }
   }
 });

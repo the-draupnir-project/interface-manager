@@ -16,7 +16,7 @@ import {
 import { describeCommand } from "./describeCommand";
 import { Ok, Result, isOk } from "@gnuxie/typescript-result";
 import {
-  MatrixRoomReferencePresentationType,
+  MatrixRoomReferencePresentationSchema,
   MatrixUserIDPresentationType,
 } from "../TextReader";
 import { StandardParsedKeywords } from "./ParsedKeywords";
@@ -46,7 +46,7 @@ it("Can define and execute commands.", async function () {
       },
       {
         name: "target room",
-        acceptor: MatrixRoomReferencePresentationType,
+        acceptor: MatrixRoomReferencePresentationSchema,
       }
     ),
   });

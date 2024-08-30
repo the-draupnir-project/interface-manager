@@ -13,12 +13,12 @@ import {
   MatrixEventViaRoomID,
   MatrixRoomAlias,
   MatrixRoomID,
-  MatrixRoomReference,
   MatrixUserID,
 } from "@the-draupnir-project/matrix-basic-types";
 import { Presentation, definePresentationType } from "../Command/Presentation";
 import { Keyword } from "../Command/Keyword";
 import { TextPresentationRenderer } from "./TextPresentationRenderer";
+import { union } from "../Command";
 
 /**
  * If you are wondering why commands specify on presentation type and not
@@ -69,24 +69,49 @@ TextPresentationRenderer.registerPresentationRenderer<Keyword>(
   }
 );
 
-export const MatrixRoomReferencePresentationType = definePresentationType({
-  name: "MatrixRoomReference",
-  validator: function (value): value is MatrixRoomReference {
-    return value instanceof MatrixRoomID || value instanceof MatrixRoomAlias;
+export const MatrixRoomIDPresentationType = definePresentationType({
+  name: "MatrixRoomID",
+  validator: function (value): value is MatrixRoomID {
+    return value instanceof MatrixRoomID;
   },
-  wrap(room: MatrixRoomReference): Presentation<MatrixRoomReference> {
+  wrap(roomID: MatrixRoomID): Presentation<MatrixRoomID> {
     return Object.freeze({
-      object: room,
-      presentationType: MatrixRoomReferencePresentationType,
+      object: roomID,
+      presentationType: MatrixRoomIDPresentationType,
     });
   },
 });
 
-TextPresentationRenderer.registerPresentationRenderer<MatrixRoomReference>(
-  MatrixRoomReferencePresentationType,
+TextPresentationRenderer.registerPresentationRenderer<MatrixRoomID>(
+  MatrixRoomIDPresentationType,
   function (presentation) {
-    return presentation.object.toPermalink();
+    return presentation.object.toRoomIDOrAlias();
   }
+);
+
+export const MatrixRoomAliasPresentationType = definePresentationType({
+  name: "MatrixRoomAlias",
+  validator: function (value): value is MatrixRoomAlias {
+    return value instanceof MatrixRoomAlias;
+  },
+  wrap(alias: MatrixRoomAlias): Presentation<MatrixRoomAlias> {
+    return Object.freeze({
+      object: alias,
+      presentationType: MatrixRoomAliasPresentationType,
+    });
+  },
+});
+
+TextPresentationRenderer.registerPresentationRenderer<MatrixRoomAlias>(
+  MatrixRoomAliasPresentationType,
+  function (presentation) {
+    return presentation.object.toRoomIDOrAlias();
+  }
+);
+
+export const MatrixRoomReferencePresentationSchema = union(
+  MatrixRoomIDPresentationType,
+  MatrixRoomAliasPresentationType
 );
 
 export const MatrixUserIDPresentationType = definePresentationType({

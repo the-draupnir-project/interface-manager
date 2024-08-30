@@ -65,7 +65,7 @@ export type PresentationSchema<ObjectType = unknown> =
   | UnionPresentationSchema<ObjectType>
   | TopPresentationSchema;
 
-export type ObjectTypeForPresentationSchema<T extends PresentationSchema> =
+export type ObjectTypeForPresentationSchema<T> =
   T extends SinglePresentationSchema
     ? ObjectTypeForSingleSchema<T>
     : T extends UnionPresentationSchema
@@ -102,4 +102,17 @@ export function printPresentationSchema(schema: PresentationSchema): string {
     case PresentationSchemaType.Top:
       return `TopPresentationSchema`;
   }
+}
+
+type UnionOfObjectTypes<T extends PresentationTypeWithoutWrap[]> = {
+  [P in keyof T]: T[P] extends PresentationTypeWithoutWrap<infer U> ? U : never;
+}[number];
+
+export function union<TPresentationTypes extends PresentationTypeWithoutWrap[]>(
+  ...presentationTypes: TPresentationTypes
+): UnionPresentationSchema<UnionOfObjectTypes<TPresentationTypes>> {
+  return {
+    schemaType: PresentationSchemaType.Union,
+    variants: presentationTypes,
+  } as UnionPresentationSchema<UnionOfObjectTypes<TPresentationTypes>>;
 }
