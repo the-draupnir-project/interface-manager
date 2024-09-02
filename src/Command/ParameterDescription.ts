@@ -21,15 +21,18 @@ export type Prompt<ExecutorContext, ObjectType = unknown> = (
   description: ParameterDescription<ExecutorContext>
 ) => Promise<Result<PromptOptions<ObjectType>>>;
 
-export interface ParameterDescription<ExecutorContext = unknown> {
+export interface ParameterDescription<
+  ExecutorContext = unknown,
+  ObjectType = unknown,
+> {
   name: string;
   description?: string | undefined;
-  acceptor: PresentationSchema;
+  acceptor: PresentationSchema<ObjectType>;
   /**
    * Prompt the interface for an argument that was not provided.
    * @param this Expected to be the executor context that is used to provided to the command executor.
    * @param description The parameter description being accepted.
    * @returns PromptOptions, to be handled by the interface adaptor.
    */
-  prompt?: Prompt<ExecutorContext> | undefined;
+  prompt?: Prompt<ExecutorContext, ObjectType> | undefined;
 }

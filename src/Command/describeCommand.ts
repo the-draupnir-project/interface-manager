@@ -27,7 +27,8 @@ export type DescribeCommandOptions<
   Context,
   TInvocationInformation,
   CommandResult,
-  Parameters extends DescribeParameter[] = DescribeParameter[],
+  Parameters extends
+    DescribeParameter<Context>[] = DescribeParameter<Context>[],
 > = {
   /** A short one line summary of what the command does to display alongside it's help */
   readonly summary: string;
@@ -39,13 +40,14 @@ export type DescribeCommandOptions<
     CommandResult,
     ArgumentsFromParametersTuple<Parameters>
   >;
-} & DescribeCommandParametersOptions<Parameters>;
+} & DescribeCommandParametersOptions<Context, Parameters>;
 
 export function describeCommand<
   Context,
-  TInvocationInformation,
-  CommandResult,
-  Parameters extends DescribeParameter[] = DescribeParameter[],
+  TInvocationInformation = unknown,
+  CommandResult = unknown,
+  Parameters extends
+    DescribeParameter<Context>[] = DescribeParameter<Context>[],
 >(
   options: DescribeCommandOptions<
     Context,
@@ -57,13 +59,13 @@ export function describeCommand<
   Context,
   TInvocationInformation,
   CommandResult,
-  ArgumentsFromParametersTuple<Parameters>
+  Parameters
 > {
   return {
     summary: options.summary,
     description: options.description,
     executor: options.executor,
-    parametersDescription: describeCommandParameters({
+    parametersDescription: describeCommandParameters<Context, Parameters>({
       parameters: options.parameters,
       rest: options.rest,
       keywords: options.keywords,

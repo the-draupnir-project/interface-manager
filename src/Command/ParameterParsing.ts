@@ -44,7 +44,8 @@ export type ParameterParseFunction<
 ) => Result<CompleteCommand<Arguments, RestArguments>>;
 
 export interface CommandParametersDescription<
-  TParameters extends ParameterDescription[],
+  Context,
+  TParameters extends ParameterDescription<Context>[],
 > {
   readonly parse: ParameterParseFunction;
   readonly descriptions: TParameters;
@@ -53,8 +54,9 @@ export interface CommandParametersDescription<
 }
 
 export class StandardCommandParametersDescription<
-  TParameters extends ParameterDescription[],
-> implements CommandParametersDescription<TParameters>
+  Context,
+  TParameters extends ParameterDescription<Context>[],
+> implements CommandParametersDescription<Context, TParameters>
 {
   constructor(
     public readonly descriptions: TParameters,
@@ -84,14 +86,14 @@ export class StandardCommandParametersDescription<
           return PromptRequiredError.Result(
             `A prompt is required for the parameter ${parameter.name}`,
             {
-              promptParameter: parameter,
+              promptParameter: parameter as ParameterDescription,
               partialCommand,
             }
           );
         } else {
           return ArgumentParseError.Result(
             `An argument for the parameter ${parameter.name} was expected but was not provided.`,
-            { parameter, partialCommand }
+            { parameter: parameter as ParameterDescription, partialCommand }
           );
         }
       }
@@ -99,7 +101,7 @@ export class StandardCommandParametersDescription<
         return ArgumentParseError.Result(
           `Was expecting a match for the presentation type: ${printPresentationSchema(parameter.acceptor)} but got ${TextPresentationRenderer.render(nextItem)}.`,
           {
-            parameter,
+            parameter: parameter as ParameterDescription,
             partialCommand,
           }
         );
@@ -136,37 +138,45 @@ export type ParameterDescriptionsFromArguments<Arguments extends unknown[]> = {
 };
 
 export type ArgumentsFromParametersTuple<
-  TParameters extends DescribeParameter[],
+  TParameters extends DescribeParameter<never>[],
 > = {
   [I in keyof TParameters]: ExtractParameterObjectType<TParameters[I]>;
 };
 
 export type ParameterDescriptionFromParamaters<
-  TParameters extends DescribeParameter[],
+  Context,
+  TParameters extends DescribeParameter<Context>[],
 > = {
   [I in keyof TParameters]: ParameterDescription<
+    Context,
     ExtractParameterObjectType<TParameters[I]>
   >;
 };
 
 export type DescribeCommandParametersOptions<
-  TParameters extends DescribeParameter[] = DescribeParameter[],
+  Context = unknown,
+  TParameters extends
+    DescribeParameter<Context>[] = DescribeParameter<Context>[],
 > = {
   readonly parameters: TParameters;
   readonly rest?: DescribeRestParameters | undefined;
   readonly keywords?: DescribeKeywordParametersOptions | undefined;
 };
 export function describeCommandParameters<
-  TParameters extends DescribeParameter[] = DescribeParameter[],
+  Context = unknown,
+  TParameters extends
+    DescribeParameter<Context>[] = DescribeParameter<Context>[],
 >(
-  options: DescribeCommandParametersOptions<TParameters>
+  options: DescribeCommandParametersOptions<Context, TParameters>
 ): CommandParametersDescription<
-  ParameterDescriptionFromParamaters<TParameters>
+  Context,
+  ParameterDescriptionFromParamaters<Context, TParameters>
 > {
-  return new StandardCommandParametersDescription<
-    ParameterDescriptionFromParamaters<TParameters>
-  >(
-    parameterDescriptionsFromParameterOptions(options.parameters),
+  return new StandardCommandParametersDescription(
+    // i really don't care just fucking work.
+    parameterDescriptionsFromParameterOptions(
+      options.parameters as DescribeParameter<unknown>[]
+    ) as unknown as ParameterDescription<unknown, TParameters>[],
     options.keywords === undefined
       ? describeKeywordParameters({
           keywordDescriptions: {},
@@ -176,11 +186,14 @@ export function describeCommandParameters<
     options.rest === undefined
       ? undefined
       : describeRestParameters(options.rest)
-  );
+  ) as CommandParametersDescription<
+    Context,
+    ParameterDescriptionFromParamaters<Context, TParameters>
+  >;
 }
 
-export type DescribeParameter<ObjectType = unknown> = Omit<
-  ParameterDescription<ObjectType>,
+export type DescribeParameter<ExecutorContext, ObjectType = unknown> = Omit<
+  ParameterDescription<ExecutorContext, ObjectType>,
   "acceptor"
 > & {
   acceptor:
@@ -188,22 +201,25 @@ export type DescribeParameter<ObjectType = unknown> = Omit<
     | PresentationTypeWithoutWrap<ObjectType>;
 };
 
-export type ExtractParameterObjectType<T extends DescribeParameter> =
+export type ExtractParameterObjectType<T extends DescribeParameter<never>> =
   ObjectTypeFromAcceptor<T["acceptor"]>;
 
 function parameterDescriptionsFromParameterOptions<
-  TParameters extends DescribeParameter[],
->(descriptions: TParameters): ParameterDescriptionFromParamaters<TParameters> {
+  Context,
+  TParameters extends DescribeParameter<Context>[],
+>(
+  descriptions: TParameters
+): ParameterDescriptionFromParamaters<Context, TParameters> {
   return descriptions.map(
     describeParameter
-  ) as ParameterDescriptionFromParamaters<TParameters>;
+  ) as ParameterDescriptionFromParamaters<Context, TParameters>;
 }
 
-function describeParameter<ObjectType>(
-  description: DescribeParameter<ObjectType>
-): ParameterDescription<ObjectType> {
+function describeParameter<ExecutorContext, ObjectType>(
+  description: DescribeParameter<ExecutorContext, ObjectType>
+): ParameterDescription<ExecutorContext, ObjectType> {
   if ("schemaType" in description.acceptor) {
-    return description as ParameterDescription;
+    return description as ParameterDescription<ExecutorContext, ObjectType>;
   } else {
     return {
       ...description,

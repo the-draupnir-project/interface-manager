@@ -8,6 +8,7 @@
 // </text>
 
 import {
+  MatrixRoomID,
   MatrixRoomReference,
   MatrixUserID,
   StringRoomID,
@@ -16,11 +17,13 @@ import {
 import { describeCommand } from "./describeCommand";
 import { Ok, Result, isOk } from "@gnuxie/typescript-result";
 import {
+  MatrixRoomIDPresentationType,
   MatrixRoomReferencePresentationSchema,
   MatrixUserIDPresentationType,
 } from "../TextReader";
 import { StandardParsedKeywords } from "./ParsedKeywords";
 import { tuple } from "./ParameterParsing";
+import { PromptOptions } from "./PromptForAccept";
 
 it("Can define and execute commands.", async function () {
   type Context = {
@@ -28,11 +31,12 @@ it("Can define and execute commands.", async function () {
       room: MatrixRoomReference,
       user: MatrixUserID
     ): Promise<Result<boolean>>;
+    getProtectedRooms(): MatrixRoomID[];
   };
-  const BanCommand = describeCommand({
+  const BanCommand = describeCommand<Context>({
     summary: "Ban a user from a room",
     async executor(
-      context: Context,
+      context,
       _commandInfo,
       _keywords,
       user,
@@ -48,6 +52,15 @@ it("Can define and execute commands.", async function () {
       {
         name: "target room",
         acceptor: MatrixRoomReferencePresentationSchema,
+        prompt: async function (
+          context
+        ): Promise<Result<PromptOptions<MatrixRoomID>>> {
+          return Ok({
+            suggestions: context
+              .getProtectedRooms()
+              .map((room) => MatrixRoomIDPresentationType.wrap(room)),
+          });
+        },
       }
     ),
   });
@@ -57,6 +70,9 @@ it("Can define and execute commands.", async function () {
         expect(room.toRoomIDOrAlias()).toBe("!foo:example.com");
         expect(user.toString()).toBe("@foo:example.com");
         return Ok(true);
+      },
+      getProtectedRooms() {
+        return [new MatrixRoomID("!foo:example.com")];
       },
     },
     {},

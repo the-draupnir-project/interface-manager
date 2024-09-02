@@ -15,8 +15,10 @@
 import { Result } from "@gnuxie/typescript-result";
 import { ParsedKeywords } from "./ParsedKeywords";
 import {
+  ArgumentsFromParametersTuple,
   CommandParametersDescription,
-  ParameterDescriptionsFromArguments,
+  DescribeParameter,
+  ParameterDescriptionFromParamaters,
 } from "./ParameterParsing";
 
 export type CommandExecutorFunction<
@@ -37,20 +39,22 @@ export interface CommandDescription<
   Context = unknown,
   TInvocationInformation = unknown,
   CommandResult = unknown,
-  Arguments extends unknown[] = unknown[],
+  Parameters extends
+    DescribeParameter<Context>[] = DescribeParameter<Context>[],
 > {
   readonly executor: CommandExecutorFunction<
     Context,
     TInvocationInformation,
     CommandResult,
-    Arguments
+    ArgumentsFromParametersTuple<Parameters>
   >;
   /** A short one line summary of what the command does to display alongside it's help */
   readonly summary: string;
   /** A longer description that goes into detail. */
   readonly description?: string | undefined;
   readonly parametersDescription: CommandParametersDescription<
-    ParameterDescriptionsFromArguments<Arguments>
+    Context,
+    ParameterDescriptionFromParamaters<Context, Parameters>
   >;
 }
 
