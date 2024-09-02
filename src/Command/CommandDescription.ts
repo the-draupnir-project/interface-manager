@@ -55,6 +55,10 @@ export interface CommandDescription<
 }
 
 export type ExtractCommandResult<TCommandDescription> =
-  TCommandDescription extends CommandDescription<unknown, infer CommandResult>
+  TCommandDescription extends CommandDescription<
+    unknown,
+    unknown,
+    infer CommandResult
+  >
     ? CommandResult
     : never;
