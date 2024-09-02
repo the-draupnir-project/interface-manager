@@ -16,56 +16,28 @@ import {
   CommandDescription,
   CommandExecutorFunction,
 } from "./CommandDescription";
+import { CommandMeta } from "./CommandMeta";
 import {
-  ArgumentsFromParametersTuple,
   DescribeCommandParametersOptions,
-  DescribeParameter,
   describeCommandParameters,
 } from "./ParameterParsing";
 
-export type DescribeCommandOptions<
-  Context,
-  TInvocationInformation,
-  CommandResult,
-  Parameters extends
-    DescribeParameter<Context>[] = DescribeParameter<Context>[],
-> = {
+export type DescribeCommandOptions<TCommandMeta extends CommandMeta> = {
   /** A short one line summary of what the command does to display alongside it's help */
   readonly summary: string;
   /** A longer description that goes into detail. */
   readonly description?: string;
-  readonly executor: CommandExecutorFunction<
-    Context,
-    TInvocationInformation,
-    CommandResult,
-    ArgumentsFromParametersTuple<Parameters>
-  >;
-} & DescribeCommandParametersOptions<Context, Parameters>;
+  readonly executor: CommandExecutorFunction<TCommandMeta>;
+} & DescribeCommandParametersOptions<TCommandMeta>;
 
-export function describeCommand<
-  Context,
-  TInvocationInformation = unknown,
-  CommandResult = unknown,
-  Parameters extends
-    DescribeParameter<Context>[] = DescribeParameter<Context>[],
->(
-  options: DescribeCommandOptions<
-    Context,
-    TInvocationInformation,
-    CommandResult,
-    Parameters
-  >
-): CommandDescription<
-  Context,
-  TInvocationInformation,
-  CommandResult,
-  Parameters
-> {
+export function describeCommand<TCommandMeta extends CommandMeta>(
+  options: DescribeCommandOptions<TCommandMeta>
+): CommandDescription<TCommandMeta> {
   return {
     summary: options.summary,
     description: options.description,
     executor: options.executor,
-    parametersDescription: describeCommandParameters<Context, Parameters>({
+    parametersDescription: describeCommandParameters<TCommandMeta>({
       parameters: options.parameters,
       rest: options.rest,
       keywords: options.keywords,

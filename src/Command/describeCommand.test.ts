@@ -33,10 +33,10 @@ it("Can define and execute commands.", async function () {
     ): Promise<Result<boolean>>;
     getProtectedRooms(): MatrixRoomID[];
   };
-  const BanCommand = describeCommand<Context>({
+  const BanCommand = describeCommand({
     summary: "Ban a user from a room",
     async executor(
-      context,
+      context: Context,
       _commandInfo,
       _keywords,
       user,
@@ -53,7 +53,7 @@ it("Can define and execute commands.", async function () {
         name: "target room",
         acceptor: MatrixRoomReferencePresentationSchema,
         prompt: async function (
-          context
+          context: Context
         ): Promise<Result<PromptOptions<MatrixRoomID>>> {
           return Ok({
             suggestions: context

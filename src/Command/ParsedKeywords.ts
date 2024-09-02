@@ -7,7 +7,8 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { KeywordParameterDescription } from "./KeywordParameterDescription";
+import { KeywordsMeta } from "./CommandMeta";
+import { KeywordParametersDescription } from "./KeywordParameterDescription";
 import { Presentation } from "./Presentation";
 
 export interface ParsedKeywords {
@@ -20,10 +21,16 @@ export interface ParsedKeywords {
 /**
  * A read only map of keywords to their associated properties.
  */
-export class StandardParsedKeywords implements ParsedKeywords {
+export class StandardParsedKeywords<
+  TKeywordsMeta extends KeywordsMeta = KeywordsMeta,
+> implements ParsedKeywords
+{
   constructor(
-    private readonly description: KeywordParameterDescription,
-    private readonly keywords: ReadonlyMap<string, Presentation | true>
+    private readonly description: KeywordParametersDescription<TKeywordsMeta>,
+    private readonly keywords: ReadonlyMap<
+      keyof TKeywordsMeta,
+      Presentation | true
+    >
   ) {}
 
   public getKeywordValue<ObjectType = unknown>(

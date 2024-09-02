@@ -10,6 +10,7 @@
 import { Err, Result, ResultError } from "@gnuxie/typescript-result";
 import { ParameterDescription } from "./ParameterDescription";
 import { PartialCommand } from "./Command";
+import { ParameterMeta } from "./CommandMeta";
 
 export class AbstractArgumentParseError extends ResultError {
   constructor(
@@ -27,24 +28,30 @@ export class AbstractArgumentParseError extends ResultError {
   }
 }
 
-export class ArgumentParseError extends AbstractArgumentParseError {
+export class ArgumentParseError<
+  TParameterMeta extends ParameterMeta = ParameterMeta,
+> extends AbstractArgumentParseError {
   constructor(
-    public readonly parameter: ParameterDescription,
+    public readonly parameter: ParameterDescription<TParameterMeta>,
     partialCommand: PartialCommand,
     message: string
   ) {
     super(partialCommand, message);
   }
 
-  public static Result<Ok>(
+  public static Result<TParameterMeta extends ParameterMeta>(
     message: string,
     options: {
-      parameter: ParameterDescription;
+      parameter: ParameterDescription<TParameterMeta>;
       partialCommand: PartialCommand;
     }
-  ): Result<Ok, ArgumentParseError> {
+  ): Result<never, ArgumentParseError<TParameterMeta>> {
     return Err(
-      new ArgumentParseError(options.parameter, options.partialCommand, message)
+      new ArgumentParseError<TParameterMeta>(
+        options.parameter,
+        options.partialCommand,
+        message
+      )
     );
   }
 }
@@ -63,28 +70,35 @@ export interface PromptContext {
   designator: string[];
 }
 
-export class PromptRequiredError extends ResultError {
+export class PromptRequiredError<
+  TParameterMeta extends ParameterMeta,
+> extends ResultError {
   constructor(
     message: string,
     context: string[],
-    public readonly parameterRequiringPrompt: ParameterDescription,
+    public readonly parameterRequiringPrompt: ParameterDescription<TParameterMeta>,
     public readonly partialCommand: PartialCommand
   ) {
     super(message, context);
   }
 
-  public static Result(
+  public static Result<TParameterMeta extends ParameterMeta>(
     message: string,
     {
       promptParameter,
       partialCommand,
     }: {
-      promptParameter: ParameterDescription;
+      promptParameter: ParameterDescription<TParameterMeta>;
       partialCommand: PartialCommand;
     }
-  ): Result<never, PromptRequiredError> {
+  ): Result<never, PromptRequiredError<TParameterMeta>> {
     return Err(
-      new PromptRequiredError(message, [], promptParameter, partialCommand)
+      new PromptRequiredError<TParameterMeta>(
+        message,
+        [],
+        promptParameter,
+        partialCommand
+      )
     );
   }
 }

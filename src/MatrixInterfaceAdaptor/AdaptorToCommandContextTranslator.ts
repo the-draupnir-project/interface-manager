@@ -8,6 +8,7 @@
 // </text>
 
 import { CommandDescription } from "../Command";
+import { CommandMeta } from "../Command/CommandMeta";
 
 /**
  * This is used to add clue code to take what is essentially a god context into a more specific
@@ -21,15 +22,15 @@ export type AdaptorToCommandContextTranslationFunction<
 > = (adaptorContext: AdaptorContext) => CommandContext;
 
 export interface AdaptorToCommandContextTranslator<AdaptorContext> {
-  translateContext<CommandContext>(
-    commandDescription: CommandDescription<CommandContext>,
+  translateContext<TCommandMeta extends CommandMeta>(
+    commandDescription: CommandDescription<TCommandMeta>,
     adaptorContext: AdaptorContext
-  ): CommandContext;
-  registerTranslation<CommandContext>(
-    commandDescription: CommandDescription<CommandContext>,
+  ): TCommandMeta["context"];
+  registerTranslation<TCommandMeta extends CommandMeta>(
+    commandDescription: CommandDescription<TCommandMeta>,
     translationFunction: AdaptorToCommandContextTranslationFunction<
       AdaptorContext,
-      CommandContext
+      TCommandMeta["context"]
     >
   ): AdaptorToCommandContextTranslator<AdaptorContext>;
 }
@@ -41,33 +42,36 @@ export class StandardAdaptorToCommandContextTranslator<AdaptorContext>
     CommandDescription,
     AdaptorToCommandContextTranslationFunction<AdaptorContext, unknown>
   >();
-  translateContext<CommandContext>(
-    commandDescription: CommandDescription<CommandContext>,
+  translateContext<TCommandMeta extends CommandMeta>(
+    commandDescription: CommandDescription<TCommandMeta>,
     adaptorContext: AdaptorContext
-  ): CommandContext {
+  ): TCommandMeta["context"] {
     const entry = this.translators.get(
-      commandDescription as CommandDescription
+      // i really don't care.
+      commandDescription as unknown as CommandDescription
     );
     if (entry === undefined) {
-      return adaptorContext as unknown as CommandContext;
+      return adaptorContext as unknown as TCommandMeta["context"];
     } else {
-      return entry(adaptorContext) as CommandContext;
+      return entry(adaptorContext) as TCommandMeta["context"];
     }
   }
-  registerTranslation<CommandContext>(
-    commandDescription: CommandDescription<CommandContext>,
+  registerTranslation<TCommandMeta extends CommandMeta>(
+    commandDescription: CommandDescription<TCommandMeta>,
     translationFunction: AdaptorToCommandContextTranslationFunction<
       AdaptorContext,
-      CommandContext
+      TCommandMeta["context"]
     >
   ): AdaptorToCommandContextTranslator<AdaptorContext> {
-    if (this.translators.has(commandDescription as CommandDescription)) {
+    if (
+      this.translators.has(commandDescription as unknown as CommandDescription)
+    ) {
       throw new TypeError(
         `There is already a translation function registered for the command ${commandDescription.summary}`
       );
     }
     this.translators.set(
-      commandDescription as CommandDescription,
+      commandDescription as unknown as CommandDescription,
       translationFunction
     );
     return this;

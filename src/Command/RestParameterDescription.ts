@@ -25,6 +25,7 @@ import {
   checkPresentationSchema,
   printPresentationSchema,
 } from "./PresentationSchema";
+import { ParameterMeta } from "./CommandMeta";
 
 /**
  * Describes a rest parameter for a command.
@@ -34,18 +35,17 @@ import {
  * Any keywords in the rest of the command will be given to the `keywordParser`.
  */
 export interface RestDescription<
-  ExecutorContext = unknown,
-  ObjectType = unknown,
-> extends ParameterDescription<ExecutorContext> {
+  TParameterMeta extends ParameterMeta = ParameterMeta,
+> extends ParameterDescription<TParameterMeta> {
   readonly name: string;
   /** The presentation type of each item. */
-  readonly acceptor: PresentationSchema;
+  readonly acceptor: PresentationSchema<TParameterMeta["objectType"]>;
   parseRest(
     partialCommand: PartialCommand,
     promptForRest: boolean,
     keywordParser: KeywordParser
-  ): Result<Presentation[]>;
-  readonly prompt?: Prompt<ExecutorContext, ObjectType> | undefined;
+  ): Result<Presentation<TParameterMeta["objectType"]>[]>;
+  readonly prompt?: Prompt<TParameterMeta> | undefined;
   readonly description?: string | undefined;
 }
 
@@ -56,17 +56,17 @@ export interface RestDescription<
  *
  * Any keywords in the rest of the command will be given to the `keywordParser`.
  */
-export class StandardRestDescription<
-  ExecutorContext = unknown,
-  ObjectType = unknown,
-> implements ParameterDescription<ExecutorContext>
+export class StandardRestDescription<TParameterMeta extends ParameterMeta>
+  implements ParameterDescription<TParameterMeta>
 {
-  public readonly acceptor: PresentationSchema;
+  public readonly acceptor: PresentationSchema<TParameterMeta["objectType"]>;
   constructor(
     public readonly name: string,
     /** The presentation type of each item. */
-    acceptor: PresentationTypeWithoutWrap | PresentationSchema,
-    public readonly prompt?: Prompt<ExecutorContext, ObjectType>,
+    acceptor:
+      | PresentationTypeWithoutWrap<TParameterMeta["objectType"]>
+      | PresentationSchema<TParameterMeta["objectType"]>,
+    public readonly prompt?: Prompt<TParameterMeta>,
     public readonly description?: string
   ) {
     if ("schemaType" in acceptor) {
@@ -90,9 +90,9 @@ export class StandardRestDescription<
     partialCommand: PartialCommand,
     promptForRest: boolean,
     keywordParser: KeywordParser
-  ): Result<Presentation[]> {
+  ): Result<Presentation<TParameterMeta["objectType"]>[]> {
     const stream = partialCommand.stream;
-    const items: Presentation[] = [];
+    const items: Presentation<TParameterMeta["objectType"]>[] = [];
     if (
       this.prompt &&
       promptForRest &&
@@ -136,19 +136,17 @@ export class StandardRestDescription<
 }
 
 export type DescribeRestParameters<
-  ExecutorContext = unknown,
-  ObjectType = unknown,
-> = Omit<
-  RestDescription<ExecutorContext, ObjectType>,
-  "parseRest" | "acceptor"
-> & {
-  acceptor: PresentationTypeWithoutWrap | PresentationSchema;
+  TParameterMeta extends ParameterMeta = ParameterMeta,
+> = Omit<RestDescription<TParameterMeta>, "parseRest" | "acceptor"> & {
+  acceptor:
+    | PresentationTypeWithoutWrap<TParameterMeta["objectType"]>
+    | PresentationSchema<TParameterMeta["objectType"]>;
 };
 
-export function describeRestParameters<ExecutorContext, ObjectType>(
-  options: DescribeRestParameters<ExecutorContext, ObjectType>
-): RestDescription<ExecutorContext, ObjectType> {
-  return new StandardRestDescription<ExecutorContext, ObjectType>(
+export function describeRestParameters<TParameterMeta extends ParameterMeta>(
+  options: DescribeRestParameters<TParameterMeta>
+): RestDescription<TParameterMeta> {
+  return new StandardRestDescription<TParameterMeta>(
     options.name,
     options.acceptor,
     options.prompt,

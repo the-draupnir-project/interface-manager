@@ -14,55 +14,30 @@
 
 import { Result } from "@gnuxie/typescript-result";
 import { ParsedKeywords } from "./ParsedKeywords";
-import {
-  ArgumentsFromParametersTuple,
-  CommandParametersDescription,
-  DescribeParameter,
-  ParameterDescriptionFromParamaters,
-} from "./ParameterParsing";
+import { CommandMeta } from "./CommandMeta";
+import { CommandParametersDescription } from "./ParameterParsing";
 
-export type CommandExecutorFunction<
-  Context = unknown,
-  TInvocationInformation = unknown,
-  CommandResult = unknown,
-  Arguments extends unknown[] = unknown[],
-> = (
+export type CommandExecutorFunction<TCommandMeta extends CommandMeta> = (
   // The context needs to be specific to each command, and we need to add context glue
   // that can attenuate them.
-  context: Context,
-  invocationInformation: TInvocationInformation,
+  context: TCommandMeta["context"],
+  invocationInformation: TCommandMeta["invocationInformation"],
   keywords: ParsedKeywords,
-  ...args: Arguments
-) => Promise<Result<CommandResult>>;
+  ...args: [...TCommandMeta["arguments"], TCommandMeta["restArguments"][number]]
+) => Promise<Result<TCommandMeta["commandResult"]>>;
 
 export interface CommandDescription<
-  Context = unknown,
-  TInvocationInformation = unknown,
-  CommandResult = unknown,
-  Parameters extends
-    DescribeParameter<Context>[] = DescribeParameter<Context>[],
+  TCommandMeta extends CommandMeta = CommandMeta,
 > {
-  readonly executor: CommandExecutorFunction<
-    Context,
-    TInvocationInformation,
-    CommandResult,
-    ArgumentsFromParametersTuple<Parameters>
-  >;
+  readonly executor: CommandExecutorFunction<TCommandMeta>;
   /** A short one line summary of what the command does to display alongside it's help */
   readonly summary: string;
   /** A longer description that goes into detail. */
   readonly description?: string | undefined;
-  readonly parametersDescription: CommandParametersDescription<
-    Context,
-    ParameterDescriptionFromParamaters<Context, Parameters>
-  >;
+  readonly parametersDescription: CommandParametersDescription<TCommandMeta>;
 }
 
-export type ExtractCommandResult<TCommandDescription> =
-  TCommandDescription extends CommandDescription<
-    unknown,
-    unknown,
-    infer CommandResult
-  >
-    ? CommandResult
+export type ExtractCommandMeta<TCommandDescription> =
+  TCommandDescription extends CommandDescription<infer TCommandMeta>
+    ? TCommandMeta
     : never;

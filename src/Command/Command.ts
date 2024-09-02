@@ -8,68 +8,56 @@
 // </text>
 
 import { CommandDescription } from "./CommandDescription";
+import { CommandMeta } from "./CommandMeta";
 import { ParsedKeywords } from "./ParsedKeywords";
 import { PresentationArgumentStream } from "./PresentationStream";
 
-type CommandBase = {
-  readonly description: CommandDescription;
+type CommandBase<TCommandMeta extends CommandMeta = CommandMeta> = {
+  readonly description: CommandDescription<TCommandMeta>;
   // The normalised designator that was used to invoke the command.
   readonly designator: string[];
 };
 
-export type Command<
-  Arguments extends unknown[] = unknown[],
-  RestArguments extends unknown[] = unknown[],
-> = CompleteCommand<Arguments, RestArguments> | PartialCommand;
+export type Command<TCommandMeta extends CommandMeta = CommandMeta> =
+  | CompleteCommand<TCommandMeta>
+  | PartialCommand<TCommandMeta>;
 
-export type CompleteCommand<
-  Arguments extends unknown[] = unknown[],
-  RestArguments extends unknown[] = unknown[],
-> = CommandBase & {
-  readonly isPartial: false;
-  readonly immediateArguments: Arguments;
-  readonly rest?: RestArguments[];
-  readonly keywords: ParsedKeywords;
-  toPartialCommand(): PartialCommand;
-};
+export type CompleteCommand<TCommandMeta extends CommandMeta = CommandMeta> =
+  CommandBase<TCommandMeta> & {
+    readonly isPartial: false;
+    readonly immediateArguments: TCommandMeta["arguments"];
+    readonly rest?: TCommandMeta["restArguments"];
+    readonly keywords: ParsedKeywords;
+    toPartialCommand(): PartialCommand;
+  };
 
-export type PartialCommand = CommandBase & {
-  readonly isPartial: true;
-  readonly stream: PresentationArgumentStream;
-};
+export type PartialCommand<TCommandMeta extends CommandMeta = CommandMeta> =
+  CommandBase<TCommandMeta> & {
+    readonly isPartial: true;
+    readonly stream: PresentationArgumentStream;
+  };
 
 export function isPartialCommand(command: Command): command is PartialCommand {
   return command.isPartial;
 }
 
 export function isCompleteCommand<
-  Arguments extends unknown[] = unknown[],
-  RestArguments extends unknown[] = unknown[],
->(
-  command: Command<Arguments, RestArguments>
-): command is CompleteCommand<Arguments, RestArguments> {
+  TCommandMeta extends CommandMeta = CommandMeta,
+>(command: Command<TCommandMeta>): command is CompleteCommand<TCommandMeta> {
   return !command.isPartial;
 }
 
 export function makePartialCommand<
-  Context = unknown,
-  InvocationInformation = unknown,
-  CommandResult = unknown,
-  Arguments extends unknown[] = unknown[],
+  TCommandMeta extends CommandMeta = CommandMeta,
 >(
   stream: PresentationArgumentStream,
-  commandDescription: CommandDescription<
-    Context,
-    InvocationInformation,
-    CommandResult,
-    Arguments
-  >,
+  commandDescription: CommandDescription<TCommandMeta>,
   designator: string[]
-): PartialCommand {
+): PartialCommand<TCommandMeta> {
   return {
     stream,
     isPartial: true,
-    description: commandDescription as CommandDescription,
+    description: commandDescription,
     designator,
   };
 }

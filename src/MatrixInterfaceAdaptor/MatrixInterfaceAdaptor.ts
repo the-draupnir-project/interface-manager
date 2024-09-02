@@ -12,7 +12,7 @@ import {
   Command,
   CommandDescription,
   CompleteCommand,
-  ExtractCommandResult,
+  ExtractCommandMeta,
   ParameterDescription,
   PartialCommand,
   Presentation,
@@ -25,6 +25,7 @@ import {
   StringEventID,
   StringUserID,
 } from "@the-draupnir-project/matrix-basic-types";
+import { CommandMeta, ParameterMeta } from "../Command/CommandMeta";
 
 export type BasicInvocationInformation = {
   readonly commandSender: StringUserID;
@@ -56,31 +57,29 @@ export interface MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
     adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext
   ): Promise<Result<void>>;
-  promptDefault<TPresentation extends Presentation>(
+  promptDefault<TParameterMeta extends ParameterMeta<AdaptorContext>>(
     adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext,
-    parameter: ParameterDescription<AdaptorContext>,
+    parameter: ParameterDescription<TParameterMeta>,
     command: PartialCommand,
-    defaultPrompt: TPresentation,
+    defaultPrompt: Presentation<TParameterMeta["objectType"]>,
     existingArguments: Presentation[]
   ): Promise<Result<void>>;
-  promptSuggestions<TPresentation extends Presentation>(
+  promptSuggestions<TParameterMeta extends ParameterMeta<AdaptorContext>>(
     adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext,
-    parameter: ParameterDescription<AdaptorContext>,
+    parameter: ParameterDescription<TParameterMeta>,
     command: PartialCommand,
-    suggestions: TPresentation[],
+    suggestions: Presentation<TParameterMeta["objectType"]>[],
     existingArguments: Presentation[]
   ): Promise<Result<void>>;
   registerRendererDescription<TCommandDescription extends CommandDescription>(
     commandDescription: TCommandDescription,
     rendererDescription: MatrixRendererDescription
   ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>;
-  describeRenderer<TCommandDescription extends CommandDescription>(
-    commandDescription: TCommandDescription,
-    rendererDescription: DescribeMatrixRenderer<
-      ExtractCommandResult<CommandDescription>
-    >
+  describeRenderer<TCommandMeta extends CommandMeta>(
+    commandDescription: CommandDescription<TCommandMeta>,
+    rendererDescription: DescribeMatrixRenderer<TCommandMeta["commandResult"]>
   ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>;
 }
 
@@ -165,8 +164,10 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
       commandContext,
       this.invocationInformationFromEventContext(matrixEventContext),
       command.keywords,
-      ...command.immediateArguments,
-      ...(command.rest ?? [])
+      ...([...command.immediateArguments, ...(command.rest ?? [])] as [
+        ...unknown[],
+        unknown,
+      ])
     );
     return (await this.runRenderersOnCommandResult(
       command.toPartialCommand(),
@@ -299,7 +300,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   public describeRenderer<TCommandDescription extends CommandDescription>(
     commandDescription: TCommandDescription,
     rendererDescription: DescribeMatrixRenderer<
-      ExtractCommandResult<TCommandDescription>
+      ExtractCommandMeta<TCommandDescription>["commandResult"]
     >
   ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
     return this.registerRendererDescription(commandDescription, {
@@ -323,7 +324,9 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     if (isError(parseResult)) {
       if (parseResult.error instanceof PromptRequiredError) {
         const parameter = parseResult.error
-          .parameterRequiringPrompt as ParameterDescription<AdaptorContext>;
+          .parameterRequiringPrompt as ParameterDescription<
+          ParameterMeta<AdaptorContext>
+        >;
         if (parameter.prompt === undefined) {
           throw new TypeError(
             `A PromptRequiredError was given for a parameter which doesn't support prompts, this shouldn't happen`

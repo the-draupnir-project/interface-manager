@@ -14,6 +14,7 @@
 
 import { Ok, Result, isError } from "@gnuxie/typescript-result";
 import { ParameterDescription } from "./ParameterDescription";
+import { ParameterMeta } from "./CommandMeta";
 import {
   DescribeRestParameters,
   RestDescription,
@@ -21,7 +22,7 @@ import {
 } from "./RestParameterDescription";
 import {
   DescribeKeywordParametersOptions,
-  KeywordParameterDescription,
+  KeywordParametersDescription,
   describeKeywordParameters,
 } from "./KeywordParameterDescription";
 import { CompleteCommand, PartialCommand } from "./Command";
@@ -35,41 +36,36 @@ import {
   printPresentationSchema,
 } from "./PresentationSchema";
 import { ObjectTypeFromAcceptor } from "./PresentationSchema";
+import { CommandMeta } from "./CommandMeta";
 
 export type ParameterParseFunction<
-  Arguments extends unknown[] = unknown[],
-  RestArguments extends unknown[] = unknown[],
-> = (
-  partialCommand: PartialCommand
-) => Result<CompleteCommand<Arguments, RestArguments>>;
+  TCommandMeta extends CommandMeta = CommandMeta,
+> = (partialCommand: PartialCommand) => Result<CompleteCommand<TCommandMeta>>;
 
 export interface CommandParametersDescription<
-  Context,
-  TParameters extends ParameterDescription<Context>[],
+  TCommandMeta extends CommandMeta,
 > {
-  readonly parse: ParameterParseFunction;
-  readonly descriptions: TParameters;
-  readonly rest?: RestDescription | undefined;
-  readonly keywords: KeywordParameterDescription;
+  readonly parse: ParameterParseFunction<TCommandMeta>;
+  readonly descriptions: TCommandMeta["parameterDescriptions"];
+  readonly rest?: RestDescription<TCommandMeta["restParameter"]> | undefined;
+  readonly keywords: KeywordParametersDescription;
 }
 
 export class StandardCommandParametersDescription<
-  Context,
-  TParameters extends ParameterDescription<Context>[],
-> implements CommandParametersDescription<Context, TParameters>
+  TCommandMeta extends CommandMeta,
+> implements CommandParametersDescription<TCommandMeta>
 {
   constructor(
-    public readonly descriptions: TParameters,
-    public readonly keywords: KeywordParameterDescription,
-    public readonly rest?: RestDescription | undefined
+    public readonly descriptions: TCommandMeta["parameterDescriptions"],
+    public readonly keywords: KeywordParametersDescription,
+    public readonly rest?:
+      | RestDescription<TCommandMeta["restParameter"]>
+      | undefined
   ) {}
 
-  public parse<
-    Arguments extends unknown[] = unknown[],
-    RestArguments extends unknown[] = unknown[],
-  >(
-    partialCommand: PartialCommand
-  ): Result<CompleteCommand<Arguments, RestArguments>> {
+  public parse(
+    partialCommand: PartialCommand<TCommandMeta>
+  ): Result<CompleteCommand<TCommandMeta>> {
     const hasPrompted = false;
     const keywordsParser = this.keywords.getParser();
     const stream = partialCommand.stream;
@@ -86,14 +82,14 @@ export class StandardCommandParametersDescription<
           return PromptRequiredError.Result(
             `A prompt is required for the parameter ${parameter.name}`,
             {
-              promptParameter: parameter as ParameterDescription,
-              partialCommand,
+              promptParameter: parameter,
+              partialCommand: partialCommand as PartialCommand,
             }
           );
         } else {
           return ArgumentParseError.Result(
             `An argument for the parameter ${parameter.name} was expected but was not provided.`,
-            { parameter: parameter as ParameterDescription, partialCommand }
+            { parameter, partialCommand: partialCommand as PartialCommand }
           );
         }
       }
@@ -101,15 +97,15 @@ export class StandardCommandParametersDescription<
         return ArgumentParseError.Result(
           `Was expecting a match for the presentation type: ${printPresentationSchema(parameter.acceptor)} but got ${TextPresentationRenderer.render(nextItem)}.`,
           {
-            parameter: parameter as ParameterDescription,
-            partialCommand,
+            parameter: parameter,
+            partialCommand: partialCommand as PartialCommand,
           }
         );
       }
       stream.readItem(); // disopose of argument.
     }
     const restResult = keywordsParser.parseRest(
-      partialCommand,
+      partialCommand as PartialCommand,
       hasPrompted,
       this.rest
     );
@@ -129,54 +125,22 @@ export class StandardCommandParametersDescription<
       rest: restResult.ok?.map((p) => p.object) ?? [],
       designator: partialCommand.designator,
       isPartial: false,
-    } as CompleteCommand<Arguments, RestArguments>);
+    } as CompleteCommand<TCommandMeta>);
   }
 }
 
-export type ParameterDescriptionsFromArguments<Arguments extends unknown[]> = {
-  [I in keyof Arguments]: ParameterDescription<Arguments[I]>;
-};
-
-export type ArgumentsFromParametersTuple<
-  TParameters extends DescribeParameter<never>[],
-> = {
-  [I in keyof TParameters]: ExtractParameterObjectType<TParameters[I]>;
-};
-
-export type ParameterDescriptionFromParamaters<
-  Context,
-  TParameters extends DescribeParameter<Context>[],
-> = {
-  [I in keyof TParameters]: ParameterDescription<
-    Context,
-    ExtractParameterObjectType<TParameters[I]>
-  >;
-};
-
-export type DescribeCommandParametersOptions<
-  Context = unknown,
-  TParameters extends
-    DescribeParameter<Context>[] = DescribeParameter<Context>[],
-> = {
-  readonly parameters: TParameters;
-  readonly rest?: DescribeRestParameters | undefined;
-  readonly keywords?: DescribeKeywordParametersOptions | undefined;
-};
-export function describeCommandParameters<
-  Context = unknown,
-  TParameters extends
-    DescribeParameter<Context>[] = DescribeParameter<Context>[],
->(
-  options: DescribeCommandParametersOptions<Context, TParameters>
-): CommandParametersDescription<
-  Context,
-  ParameterDescriptionFromParamaters<Context, TParameters>
-> {
-  return new StandardCommandParametersDescription(
+export type DescribeCommandParametersOptions<TCommandMeta extends CommandMeta> =
+  {
+    readonly parameters: TCommandMeta["describeParameters"];
+    readonly rest?: DescribeRestParameters | undefined;
+    readonly keywords?: DescribeKeywordParametersOptions | undefined;
+  };
+export function describeCommandParameters<TCommandMeta extends CommandMeta>(
+  options: DescribeCommandParametersOptions<TCommandMeta>
+): CommandParametersDescription<TCommandMeta> {
+  return new StandardCommandParametersDescription<TCommandMeta>(
     // i really don't care just fucking work.
-    parameterDescriptionsFromParameterOptions(
-      options.parameters as DescribeParameter<unknown>[]
-    ) as unknown as ParameterDescription<unknown, TParameters>[],
+    parameterDescriptionsFromParameterOptions(options.parameters),
     options.keywords === undefined
       ? describeKeywordParameters({
           keywordDescriptions: {},
@@ -186,40 +150,34 @@ export function describeCommandParameters<
     options.rest === undefined
       ? undefined
       : describeRestParameters(options.rest)
-  ) as CommandParametersDescription<
-    Context,
-    ParameterDescriptionFromParamaters<Context, TParameters>
-  >;
+  );
 }
 
-export type DescribeParameter<ExecutorContext, ObjectType = unknown> = Omit<
-  ParameterDescription<ExecutorContext, ObjectType>,
+export type DescribeParameter<TParameterMeta extends ParameterMeta> = Omit<
+  ParameterDescription<TParameterMeta>,
   "acceptor"
 > & {
   acceptor:
-    | PresentationSchema<ObjectType>
-    | PresentationTypeWithoutWrap<ObjectType>;
+    | PresentationSchema<TParameterMeta["objectType"]>
+    | PresentationTypeWithoutWrap<TParameterMeta["objectType"]>;
 };
 
 export type ExtractParameterObjectType<T extends DescribeParameter<never>> =
   ObjectTypeFromAcceptor<T["acceptor"]>;
 
 function parameterDescriptionsFromParameterOptions<
-  Context,
-  TParameters extends DescribeParameter<Context>[],
+  TCommandMeta extends CommandMeta,
 >(
-  descriptions: TParameters
-): ParameterDescriptionFromParamaters<Context, TParameters> {
-  return descriptions.map(
-    describeParameter
-  ) as ParameterDescriptionFromParamaters<Context, TParameters>;
+  descriptions: TCommandMeta["describeParameters"]
+): TCommandMeta["parameterDescriptions"] {
+  return descriptions.map(describeParameter);
 }
 
-function describeParameter<ExecutorContext, ObjectType>(
-  description: DescribeParameter<ExecutorContext, ObjectType>
-): ParameterDescription<ExecutorContext, ObjectType> {
+function describeParameter<TParameterMeta extends ParameterMeta>(
+  description: DescribeParameter<TParameterMeta>
+): ParameterDescription<TParameterMeta> {
   if ("schemaType" in description.acceptor) {
-    return description as ParameterDescription<ExecutorContext, ObjectType>;
+    return description as ParameterDescription<TParameterMeta>;
   } else {
     return {
       ...description,

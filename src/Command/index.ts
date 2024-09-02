@@ -4,6 +4,7 @@
 
 export * from "./Command";
 export * from "./CommandDescription";
+export * from "./CommandMeta";
 export * from "./CommandTable";
 export * from "./describeCommand";
 export * from "./Keyword";
