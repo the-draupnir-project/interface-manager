@@ -21,22 +21,30 @@ import {
 
 export type CommandExecutorFunction<
   Context = unknown,
+  TInvocationInformation = unknown,
   CommandResult = unknown,
   Arguments extends unknown[] = unknown[],
 > = (
   // The context needs to be specific to each command, and we need to add context glue
   // that can attenuate them.
   context: Context,
+  invocationInformation: TInvocationInformation,
   keywords: ParsedKeywords,
   ...args: Arguments
 ) => Promise<Result<CommandResult>>;
 
 export interface CommandDescription<
   Context = unknown,
+  TInvocationInformation = unknown,
   CommandResult = unknown,
   Arguments extends unknown[] = unknown[],
 > {
-  readonly executor: CommandExecutorFunction<Context, CommandResult, Arguments>;
+  readonly executor: CommandExecutorFunction<
+    Context,
+    TInvocationInformation,
+    CommandResult,
+    Arguments
+  >;
   /** A short one line summary of what the command does to display alongside it's help */
   readonly summary: string;
   /** A longer description that goes into detail. */

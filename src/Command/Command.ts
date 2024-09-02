@@ -53,11 +53,17 @@ export function isCompleteCommand<
 
 export function makePartialCommand<
   Context = unknown,
+  InvocationInformation = unknown,
   CommandResult = unknown,
   Arguments extends unknown[] = unknown[],
 >(
   stream: PresentationArgumentStream,
-  commandDescription: CommandDescription<Context, CommandResult, Arguments>,
+  commandDescription: CommandDescription<
+    Context,
+    InvocationInformation,
+    CommandResult,
+    Arguments
+  >,
   designator: string[]
 ): PartialCommand {
   return {

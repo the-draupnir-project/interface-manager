@@ -21,6 +21,21 @@ import {
 import { MatrixRendererDescription } from "./MatrixRendererDescription";
 import { DocumentNode } from "../DeadDocument";
 import { AdaptorToCommandContextTranslator } from "./AdaptorToCommandContextTranslator";
+import {
+  StringEventID,
+  StringUserID,
+} from "@the-draupnir-project/matrix-basic-types";
+
+export type BasicInvocationInformation = {
+  readonly commandSender: StringUserID;
+  readonly commandEventID: StringEventID;
+};
+
+export type InvocationInformationFromEventContext<
+  MatrixEventContext,
+  InvocationInformation extends
+    BasicInvocationInformation = BasicInvocationInformation,
+> = (eventContext: MatrixEventContext) => InvocationInformation;
 
 export interface MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
   /**
@@ -108,6 +123,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   >();
   public constructor(
     private readonly adaptorToCommandContextTranslator: AdaptorToCommandContextTranslator<AdaptorContext>,
+    private readonly invocationInformationFromEventContext: InvocationInformationFromEventContext<MatrixEventContext>,
     public readonly promptDefault: MatrixInterfaceAdaptor<
       AdaptorContext,
       MatrixEventContext
@@ -147,6 +163,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
       );
     const commandResult = await command.description.executor(
       commandContext,
+      this.invocationInformationFromEventContext(matrixEventContext),
       command.keywords,
       ...command.immediateArguments,
       ...(command.rest ?? [])

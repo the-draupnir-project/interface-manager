@@ -25,6 +25,7 @@ import {
 
 export type DescribeCommandOptions<
   Context,
+  TInvocationInformation,
   CommandResult,
   Parameters extends DescribeParameter[] = DescribeParameter[],
 > = {
@@ -34,6 +35,7 @@ export type DescribeCommandOptions<
   readonly description?: string;
   readonly executor: CommandExecutorFunction<
     Context,
+    TInvocationInformation,
     CommandResult,
     ArgumentsFromParametersTuple<Parameters>
   >;
@@ -41,12 +43,19 @@ export type DescribeCommandOptions<
 
 export function describeCommand<
   Context,
+  TInvocationInformation,
   CommandResult,
   Parameters extends DescribeParameter[] = DescribeParameter[],
 >(
-  options: DescribeCommandOptions<Context, CommandResult, Parameters>
+  options: DescribeCommandOptions<
+    Context,
+    TInvocationInformation,
+    CommandResult,
+    Parameters
+  >
 ): CommandDescription<
   Context,
+  TInvocationInformation,
   CommandResult,
   ArgumentsFromParametersTuple<Parameters>
 > {

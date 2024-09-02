@@ -33,6 +33,7 @@ it("Can define and execute commands.", async function () {
     summary: "Ban a user from a room",
     async executor(
       context: Context,
+      _commandInfo,
       _keywords,
       user,
       room
@@ -58,6 +59,7 @@ it("Can define and execute commands.", async function () {
         return Ok(true);
       },
     },
+    {},
     new StandardParsedKeywords(
       BanCommand.parametersDescription.keywords,
       new Map()
