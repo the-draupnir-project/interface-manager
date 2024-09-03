@@ -25,7 +25,7 @@ export type CommandExecutorFunction<TCommandMeta extends CommandMeta> = (
     : TCommandMeta["Context"],
   invocationInformation: TCommandMeta["InvocationInformation"],
   keywords: ParsedKeywords,
-  rest: TCommandMeta["TRestArgumentObjectType"],
+  rest: TCommandMeta["TRestArgumentObjectType"][],
   ...args: TCommandMeta["TImmediateArgumentsObjectTypes"]
 ) => Promise<Result<TCommandMeta["CommandResult"]>>;
 

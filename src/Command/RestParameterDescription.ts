@@ -13,7 +13,7 @@
 // </text>
 
 import { Ok, Result, isError } from "@gnuxie/typescript-result";
-import { ParameterDescription, Prompt } from "./ParameterDescription";
+import { ParameterDescription } from "./ParameterDescription";
 import { Presentation, PresentationTypeWithoutWrap } from "./Presentation";
 import { KeywordParser } from "./KeywordParameterDescription";
 import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
@@ -25,6 +25,11 @@ import {
   checkPresentationSchema,
   printPresentationSchema,
 } from "./PresentationSchema";
+import { RestPromptOptions } from "./PromptForAccept";
+
+export type RestPrompt<ObjectType> = <Context extends never = never>(
+  context: Context
+) => Promise<Result<RestPromptOptions<ObjectType>>>;
 
 /**
  * Describes a rest parameter for a command.
@@ -34,7 +39,7 @@ import {
  * Any keywords in the rest of the command will be given to the `keywordParser`.
  */
 export interface RestDescription<ObjectType = unknown>
-  extends ParameterDescription<ObjectType> {
+  extends Omit<ParameterDescription<ObjectType>, "prompt"> {
   readonly name: string;
   /** The presentation type of each item. */
   readonly acceptor: PresentationSchema<ObjectType>;
@@ -43,7 +48,7 @@ export interface RestDescription<ObjectType = unknown>
     promptForRest: boolean,
     keywordParser: KeywordParser
   ): Result<Presentation<ObjectType>[]>;
-  prompt?: Prompt<ObjectType> | undefined;
+  prompt?: RestPrompt<ObjectType> | undefined;
   readonly description?: string | undefined;
 }
 
@@ -55,7 +60,7 @@ export interface RestDescription<ObjectType = unknown>
  * Any keywords in the rest of the command will be given to the `keywordParser`.
  */
 export class StandardRestDescription<ObjectType = unknown>
-  implements ParameterDescription<ObjectType>
+  implements RestDescription<ObjectType>
 {
   public readonly acceptor: PresentationSchema<ObjectType>;
   constructor(
@@ -64,7 +69,7 @@ export class StandardRestDescription<ObjectType = unknown>
     acceptor:
       | PresentationTypeWithoutWrap<ObjectType>
       | PresentationSchema<ObjectType>,
-    public readonly prompt?: Prompt<ObjectType>,
+    public readonly prompt?: RestPrompt<ObjectType>,
     public readonly description?: string
   ) {
     if ("schemaType" in acceptor) {

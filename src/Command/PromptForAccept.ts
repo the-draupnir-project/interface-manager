@@ -17,6 +17,11 @@ export interface PromptOptions<ObjectType = unknown> {
   readonly default?: Presentation<ObjectType>;
 }
 
+export interface RestPromptOptions<ObjectType = unknown> {
+  readonly suggestions: Presentation<ObjectType>[][];
+  readonly default?: Presentation<ObjectType>[];
+}
+
 /**
  * The idea is that the InterfaceAcceptor can use the presentation type
  * to derive the prompt, or use the prompt given by the ParameterDescription.
