@@ -13,10 +13,14 @@ import { Keyword } from "./Keyword";
 import { ParameterDescription } from "./ParameterDescription";
 import { ArgumentParseError, UnexpectedArgumentError } from "./ParseErrors";
 import { ParsedKeywords, StandardParsedKeywords } from "./ParsedKeywords";
-import { Presentation } from "./Presentation";
+import { Presentation, PresentationTypeWithoutWrap } from "./Presentation";
 import { RestDescription } from "./RestParameterDescription";
 import { PartialCommand } from "./Command";
 import {
+  PresentationSchema,
+  PresentationSchemaType,
+  SinglePresentationSchema,
+  TopPresentationSchema,
   checkPresentationSchema,
   printPresentationSchema,
 } from "./PresentationSchema";
@@ -33,6 +37,14 @@ import {
 export interface KeywordPropertyDescription<ObjectType = unknown>
   extends ParameterDescription<ObjectType> {
   readonly isFlag: boolean;
+}
+
+export interface DescribeKeywordProperty<ObjectType = unknown> {
+  readonly acceptor?:
+    | PresentationSchema<ObjectType>
+    | PresentationTypeWithoutWrap<ObjectType>;
+  readonly isFlag?: boolean;
+  readonly description?: string;
 }
 
 /**
@@ -164,15 +176,60 @@ export class KeywordParser<TKeywordsMeta extends KeywordsMeta = KeywordsMeta> {
 
 export type DescribeKeywordParametersOptions<
   TKeywordsMeta extends KeywordsMeta = KeywordsMeta,
-> = Omit<KeywordParametersDescription<TKeywordsMeta>, "getParser">;
+> = {
+  readonly keywordDescriptions: {
+    [I in keyof TKeywordsMeta]: DescribeKeywordProperty<TKeywordsMeta[I]>;
+  };
+  readonly allowOtherKeys?: boolean;
+};
+
+function describeKeywordProperty<ObjectType>(
+  name: string,
+  property: DescribeKeywordProperty<ObjectType>
+): KeywordPropertyDescription<ObjectType> {
+  if (property.acceptor === undefined) {
+    if (!property.isFlag) {
+      throw new TypeError(
+        "An acceptor is required if the property is not a flag."
+      );
+    }
+  }
+  const acceptor = ((acceptor) => {
+    if (acceptor === undefined) {
+      return TopPresentationSchema;
+    } else if ("schemaType" in acceptor) {
+      return acceptor;
+    } else {
+      return {
+        schemaType: PresentationSchemaType.Single,
+        presentationType: acceptor,
+      } as SinglePresentationSchema<ObjectType>;
+    }
+  })(property.acceptor);
+  return {
+    name,
+    isFlag: property.isFlag ?? false,
+    acceptor,
+    description: property.description,
+  };
+}
 
 export function describeKeywordParameters<
   TKeywordsMeta extends KeywordsMeta = KeywordsMeta,
 >(
   options: DescribeKeywordParametersOptions<TKeywordsMeta>
 ): KeywordParametersDescription<TKeywordsMeta> {
+  const keywordDescriptions: Record<string, KeywordPropertyDescription> = {};
+  for (const [name, property] of Object.entries(options.keywordDescriptions)) {
+    keywordDescriptions[name] = describeKeywordProperty(
+      name,
+      property as DescribeKeywordProperty
+    );
+  }
   return {
-    ...options,
+    keywordDescriptions:
+      keywordDescriptions as KeywordPropertyDescriptionsFromKeywordsMeta<TKeywordsMeta>,
+    allowOtherKeys: options.allowOtherKeys ?? false,
     getParser() {
       return new KeywordParser(this);
     },

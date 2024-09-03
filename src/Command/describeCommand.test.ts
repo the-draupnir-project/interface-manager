@@ -20,10 +20,12 @@ import {
   MatrixRoomIDPresentationType,
   MatrixRoomReferencePresentationSchema,
   MatrixUserIDPresentationType,
+  StringPresentationType,
 } from "../TextReader";
-import { StandardParsedKeywords } from "./ParsedKeywords";
+import { ParsedKeywords, StandardParsedKeywords } from "./ParsedKeywords";
 import { tuple } from "./ParameterParsing";
 import { PromptOptions } from "./PromptForAccept";
+import { describeKeywordParameters } from "./KeywordParameterDescription";
 
 it("Can define and execute commands.", async function () {
   type Context = {
@@ -89,4 +91,46 @@ it("Can define and execute commands.", async function () {
     MatrixRoomReference.fromRoomID("!foo:example.com" as StringRoomID, [])
   );
   expect(isOk(banResult)).toBe(true);
+});
+
+// DescribeKeywordProperty optionally
+// accepts an acceptor only when the type is flag, and replaces that
+// with the TopPresentationSchema once its is turned into a KeywordPropertyDescription.
+it("Can define keyword arguments.", async function () {
+  // so it's at this point that i ralised that we have no ability to test the parseAndInvoke
+  // functionality in unit tests here without implementing a MatrixInterfaceAdaptor,
+  // or some other adaptor for unit testing.
+  // Making that fake probably requires splitting out the arguments to the interface adaptor
+  // or the command dispatcher too, so that there's something that has all those callbacks
+  // defined on them and they can be optionally implemented by the consumer.
+  // That will make it really easy for people to get started using the library without wondering
+  // what the hell these 200 dependencies are that they have to instantiate somehow.
+  const KeywordsCommandTest = describeCommand({
+    summary: "A command to test keyword arguments",
+    async executor(
+      _context: never,
+      _info: unknown,
+      keywords: ParsedKeywords
+    ): Promise<Result<unknown>> {},
+    parameters: [],
+    keywords: {
+      keywordDescriptions: {
+        "dry-run": {
+          isFlag: true,
+          description:
+            "Runs the kick command without actually removing any users.",
+        },
+        glob: {
+          isFlag: true,
+          description:
+            "Allows globs to be used to kick several users from rooms.",
+        },
+        room: {
+          acceptor: MatrixRoomReferencePresentationSchema,
+          description:
+            "Allows the command to be scoped to just one protected room.",
+        },
+      },
+    },
+  });
 });

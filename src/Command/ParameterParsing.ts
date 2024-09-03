@@ -180,7 +180,7 @@ export function describeCommandParameters<
     options.keywords === undefined
       ? describeKeywordParameters({
           keywordDescriptions:
-            {} as KeywordParametersDescription<TKeywordsMeta>["keywordDescriptions"],
+            {} as DescribeKeywordParametersOptions<TKeywordsMeta>["keywordDescriptions"],
           allowOtherKeys: false,
         })
       : describeKeywordParameters(options.keywords),
