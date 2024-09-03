@@ -33,6 +33,9 @@ it("Can define and execute commands.", async function () {
     ): Promise<Result<boolean>>;
     getProtectedRooms(): MatrixRoomID[];
   };
+  // i think what we have to do is split describeCommand into two parts :(
+  // The first extracts the parameters and possibly accepts the `context` as a type parmater.
+  // then the function it returns accepts the executor.
   const BanCommand = describeCommand({
     summary: "Ban a user from a room",
     async executor(

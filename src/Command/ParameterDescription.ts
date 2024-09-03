@@ -18,8 +18,9 @@ import { PromptOptions } from "./PromptForAccept";
 import { ParameterMeta } from "./CommandMeta";
 
 export type Prompt<TParameterMeta extends ParameterMeta> = (
-  context: TParameterMeta["context"],
-  description: ParameterDescription<TParameterMeta>
+  context: unknown extends TParameterMeta["context"]
+    ? never
+    : TParameterMeta["context"]
 ) => Promise<Result<PromptOptions<TParameterMeta["objectType"]>>>;
 
 export interface ParameterDescription<

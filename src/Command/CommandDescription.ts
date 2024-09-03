@@ -20,7 +20,9 @@ import { CommandParametersDescription } from "./ParameterParsing";
 export type CommandExecutorFunction<TCommandMeta extends CommandMeta> = (
   // The context needs to be specific to each command, and we need to add context glue
   // that can attenuate them.
-  context: TCommandMeta["context"],
+  context: unknown extends TCommandMeta["context"]
+    ? never
+    : TCommandMeta["context"],
   invocationInformation: TCommandMeta["invocationInformation"],
   keywords: ParsedKeywords,
   ...args: [...TCommandMeta["arguments"], TCommandMeta["restArguments"][number]]

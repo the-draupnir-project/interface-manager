@@ -161,7 +161,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
         adaptorContext
       );
     const commandResult = await command.description.executor(
-      commandContext,
+      commandContext as never,
       this.invocationInformationFromEventContext(matrixEventContext),
       command.keywords,
       ...([...command.immediateArguments, ...(command.rest ?? [])] as [
@@ -333,8 +333,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
           );
         }
         const promptOptionsResult = await parameter.prompt(
-          adaptorContext,
-          parameter
+          adaptorContext as never // weh, we know we have the right adaptorContext, it's just being annoying while we avoid controvariance.
         );
         if (isError(promptOptionsResult)) {
           return promptOptionsResult.elaborate(

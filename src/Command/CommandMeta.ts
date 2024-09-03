@@ -29,11 +29,19 @@ export type KeywordPropertyRecordFromKeywordsMeta<
   TKeywordsMeta extends KeywordsMeta,
 > = { [I in keyof TKeywordsMeta]?: TKeywordsMeta[I]["objectType"] };
 
+type ParametersFromArguments<Context, Arguments extends unknown[]> = {
+  [I in keyof Arguments]: ParameterMeta<Context, Arguments[I]>;
+};
+
 export type CommandMeta<
   Context = unknown,
   InvocationInformation = unknown,
   CommandResult = unknown,
-  Parameters extends ParameterMeta<Context>[] = ParameterMeta<Context>[],
+  Arguments extends unknown[] = unknown[],
+  Parameters extends ParametersFromArguments<
+    Context,
+    Arguments
+  > = ParametersFromArguments<Context, Arguments>,
   Keywords extends KeywordsMeta<Context> = KeywordsMeta<Context>,
   RestParameterMeta extends ParameterMeta<Context> = ParameterMeta<Context>,
 > = {
