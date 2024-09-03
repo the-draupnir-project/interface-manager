@@ -21,10 +21,8 @@ import {
   printPresentationSchema,
 } from "./PresentationSchema";
 import {
-  CommandMeta,
   KeywordPropertyDescriptionsFromKeywordsMeta,
   KeywordsMeta,
-  ParameterMeta,
 } from "./CommandMeta";
 
 /**
@@ -32,9 +30,8 @@ import {
  * may just be flags that have no associated property in syntax,
  * and their presence is to associate the value `true`.
  */
-export interface KeywordPropertyDescription<
-  TParameterMeta extends ParameterMeta = ParameterMeta,
-> extends ParameterDescription<TParameterMeta> {
+export interface KeywordPropertyDescription<ObjectType = unknown>
+  extends ParameterDescription<ObjectType> {
   readonly isFlag: boolean;
 }
 
@@ -103,9 +100,7 @@ export class KeywordParser<TKeywordsMeta extends KeywordsMeta = KeywordsMeta> {
     }
   }
 
-  public parseKeywords<TCommandMeta extends CommandMeta>(
-    partialCommand: PartialCommand<TCommandMeta>
-  ): Result<this> {
+  public parseKeywords(partialCommand: PartialCommand): Result<this> {
     const stream = partialCommand.stream;
     while (stream.peekItem()?.object instanceof Keyword) {
       const item = stream.readItem() as Presentation<Keyword>;
@@ -120,14 +115,14 @@ export class KeywordParser<TKeywordsMeta extends KeywordsMeta = KeywordsMeta> {
         } else {
           return UnexpectedArgumentError.Result(
             `Encountered unexpected keyword argument: ${item.object.designator}`,
-            { partialCommand: partialCommand as PartialCommand }
+            { partialCommand }
           );
         }
       } else {
         const associatedPropertyResult = this.readKeywordAssociatedProperty(
           // idk why typescript is bottoming out here but whatever.
           description as unknown as KeywordParametersDescription["keywordDescriptions"][string],
-          partialCommand as PartialCommand
+          partialCommand
         );
         if (isError(associatedPropertyResult)) {
           return associatedPropertyResult;
@@ -167,14 +162,15 @@ export class KeywordParser<TKeywordsMeta extends KeywordsMeta = KeywordsMeta> {
   }
 }
 
-export type DescribeKeywordParametersOptions = Omit<
-  KeywordParametersDescription,
-  "getParser"
->;
+export type DescribeKeywordParametersOptions<
+  TKeywordsMeta extends KeywordsMeta = KeywordsMeta,
+> = Omit<KeywordParametersDescription<TKeywordsMeta>, "getParser">;
 
-export function describeKeywordParameters(
-  options: DescribeKeywordParametersOptions
-): KeywordParametersDescription {
+export function describeKeywordParameters<
+  TKeywordsMeta extends KeywordsMeta = KeywordsMeta,
+>(
+  options: DescribeKeywordParametersOptions<TKeywordsMeta>
+): KeywordParametersDescription<TKeywordsMeta> {
   return {
     ...options,
     getParser() {

@@ -25,8 +25,8 @@ export type Command<TCommandMeta extends CommandMeta = CommandMeta> =
 export type CompleteCommand<TCommandMeta extends CommandMeta = CommandMeta> =
   CommandBase<TCommandMeta> & {
     readonly isPartial: false;
-    readonly immediateArguments: TCommandMeta["arguments"];
-    readonly rest?: TCommandMeta["restArguments"];
+    readonly immediateArguments: TCommandMeta["TImmediateArgumentsObjectTypes"];
+    readonly rest?: TCommandMeta["TRestArgumentObjectType"][];
     readonly keywords: ParsedKeywords;
     toPartialCommand(): PartialCommand;
   };

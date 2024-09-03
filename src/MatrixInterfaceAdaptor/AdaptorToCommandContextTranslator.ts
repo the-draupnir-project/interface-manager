@@ -25,12 +25,12 @@ export interface AdaptorToCommandContextTranslator<AdaptorContext> {
   translateContext<TCommandMeta extends CommandMeta>(
     commandDescription: CommandDescription<TCommandMeta>,
     adaptorContext: AdaptorContext
-  ): TCommandMeta["context"];
+  ): TCommandMeta["Context"];
   registerTranslation<TCommandMeta extends CommandMeta>(
     commandDescription: CommandDescription<TCommandMeta>,
     translationFunction: AdaptorToCommandContextTranslationFunction<
       AdaptorContext,
-      TCommandMeta["context"]
+      TCommandMeta["Context"]
     >
   ): AdaptorToCommandContextTranslator<AdaptorContext>;
 }
@@ -45,22 +45,22 @@ export class StandardAdaptorToCommandContextTranslator<AdaptorContext>
   translateContext<TCommandMeta extends CommandMeta>(
     commandDescription: CommandDescription<TCommandMeta>,
     adaptorContext: AdaptorContext
-  ): TCommandMeta["context"] {
+  ): TCommandMeta["Context"] {
     const entry = this.translators.get(
       // i really don't care.
       commandDescription as unknown as CommandDescription
     );
     if (entry === undefined) {
-      return adaptorContext as unknown as TCommandMeta["context"];
+      return adaptorContext as unknown as TCommandMeta["Context"];
     } else {
-      return entry(adaptorContext) as TCommandMeta["context"];
+      return entry(adaptorContext) as TCommandMeta["Context"];
     }
   }
   registerTranslation<TCommandMeta extends CommandMeta>(
     commandDescription: CommandDescription<TCommandMeta>,
     translationFunction: AdaptorToCommandContextTranslationFunction<
       AdaptorContext,
-      TCommandMeta["context"]
+      TCommandMeta["Context"]
     >
   ): AdaptorToCommandContextTranslator<AdaptorContext> {
     if (

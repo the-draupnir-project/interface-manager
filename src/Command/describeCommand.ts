@@ -16,7 +16,7 @@ import {
   CommandDescription,
   CommandExecutorFunction,
 } from "./CommandDescription";
-import { CommandMeta } from "./CommandMeta";
+import { CommandMeta, KeywordsMeta } from "./CommandMeta";
 import {
   DescribeCommandParametersOptions,
   describeCommandParameters,
@@ -28,19 +28,53 @@ export type DescribeCommandOptions<TCommandMeta extends CommandMeta> = {
   /** A longer description that goes into detail. */
   readonly description?: string;
   readonly executor: CommandExecutorFunction<TCommandMeta>;
-} & DescribeCommandParametersOptions<TCommandMeta>;
+} & DescribeCommandParametersOptions<
+  TCommandMeta["TImmediateArgumentsObjectTypes"],
+  TCommandMeta["TRestArgumentObjectType"],
+  TCommandMeta["TKeywordsMeta"]
+>;
 
-export function describeCommand<TCommandMeta extends CommandMeta>(
-  options: DescribeCommandOptions<TCommandMeta>
-): CommandDescription<TCommandMeta> {
+export function describeCommand<
+  Context = unknown,
+  InvocationInformation = unknown,
+  CommandResult = unknown,
+  TImmediateArgumentsObjectTypes extends unknown[] = unknown[],
+  TRestArgumentObjectType = unknown,
+  TKeywordsMeta extends KeywordsMeta = KeywordsMeta,
+>(
+  options: DescribeCommandOptions<
+    CommandMeta<
+      Context,
+      InvocationInformation,
+      CommandResult,
+      TImmediateArgumentsObjectTypes,
+      TRestArgumentObjectType,
+      TKeywordsMeta
+    >
+  >
+): CommandDescription<
+  CommandMeta<
+    Context,
+    InvocationInformation,
+    CommandResult,
+    TImmediateArgumentsObjectTypes,
+    TRestArgumentObjectType,
+    TKeywordsMeta
+  >
+> {
+  const parametersDescription = describeCommandParameters<
+    TImmediateArgumentsObjectTypes,
+    TRestArgumentObjectType,
+    TKeywordsMeta
+  >({
+    parameters: options.parameters,
+    rest: options.rest,
+    keywords: options.keywords,
+  });
   return {
     summary: options.summary,
     description: options.description,
     executor: options.executor,
-    parametersDescription: describeCommandParameters<TCommandMeta>({
-      parameters: options.parameters,
-      rest: options.rest,
-      keywords: options.keywords,
-    }),
+    parametersDescription,
   };
 }

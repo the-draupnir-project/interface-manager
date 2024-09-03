@@ -15,25 +15,20 @@
 import { Result } from "@gnuxie/typescript-result";
 import { PresentationSchema } from "./PresentationSchema";
 import { PromptOptions } from "./PromptForAccept";
-import { ParameterMeta } from "./CommandMeta";
 
-export type Prompt<TParameterMeta extends ParameterMeta> = (
-  context: unknown extends TParameterMeta["context"]
-    ? never
-    : TParameterMeta["context"]
-) => Promise<Result<PromptOptions<TParameterMeta["objectType"]>>>;
+export type Prompt<ObjectType> = <Context extends never = never>(
+  context: Context
+) => Promise<Result<PromptOptions<ObjectType>>>;
 
-export interface ParameterDescription<
-  TParameterMeta extends ParameterMeta = ParameterMeta,
-> {
+export interface ParameterDescription<ObjectType = unknown> {
   name: string;
   description?: string | undefined;
-  acceptor: PresentationSchema<TParameterMeta["objectType"]>;
+  acceptor: PresentationSchema<ObjectType>;
   /**
    * Prompt the interface for an argument that was not provided.
    * @param this Expected to be the executor context that is used to provided to the command executor.
    * @param description The parameter description being accepted.
    * @returns PromptOptions, to be handled by the interface adaptor.
    */
-  prompt?: Prompt<TParameterMeta> | undefined;
+  prompt?: Prompt<ObjectType> | undefined;
 }

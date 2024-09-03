@@ -8,16 +8,9 @@
 // </text>
 
 import { KeywordPropertyDescription } from "./KeywordParameterDescription";
-import { ParameterDescription } from "./ParameterDescription";
-import { DescribeParameter } from "./ParameterParsing";
 
-export type ParameterMeta<ExecutorContext = unknown, ObjectType = unknown> = {
-  readonly context: ExecutorContext;
-  readonly objectType: ObjectType;
-};
-
-export type KeywordsMeta<ExecutorContext = unknown> = {
-  [keyword: string]: ParameterMeta<ExecutorContext>;
+export type KeywordsMeta = {
+  [keyword: string]: unknown;
 };
 
 export type KeywordPropertyDescriptionsFromKeywordsMeta<
@@ -27,39 +20,20 @@ export type KeywordPropertyDescriptionsFromKeywordsMeta<
 };
 export type KeywordPropertyRecordFromKeywordsMeta<
   TKeywordsMeta extends KeywordsMeta,
-> = { [I in keyof TKeywordsMeta]?: TKeywordsMeta[I]["objectType"] };
-
-type ParametersFromArguments<Context, Arguments extends unknown[]> = {
-  [I in keyof Arguments]: ParameterMeta<Context, Arguments[I]>;
-};
+> = { [I in keyof TKeywordsMeta]?: TKeywordsMeta[I] };
 
 export type CommandMeta<
   Context = unknown,
   InvocationInformation = unknown,
   CommandResult = unknown,
-  Arguments extends unknown[] = unknown[],
-  Parameters extends ParametersFromArguments<
-    Context,
-    Arguments
-  > = ParametersFromArguments<Context, Arguments>,
-  Keywords extends KeywordsMeta<Context> = KeywordsMeta<Context>,
-  RestParameterMeta extends ParameterMeta<Context> = ParameterMeta<Context>,
+  TImmediateArgumentsObjectTypes extends unknown[] = unknown[],
+  TRestArgumentObjectType = unknown,
+  TKeywordsMeta extends KeywordsMeta = KeywordsMeta,
 > = {
-  readonly context: Context;
-  readonly invocationInformation: InvocationInformation;
-  readonly commandResult: CommandResult;
-  readonly parameters: Parameters;
-  readonly arguments: {
-    [I in keyof Parameters]: Parameters[I]["objectType"];
-  };
-  readonly parameterDescriptions: {
-    [I in keyof Parameters]: ParameterDescription<Parameters[I]>;
-  };
-  readonly describeParameters: {
-    [I in keyof Parameters]: DescribeParameter<Parameters[I]>;
-  };
-  readonly restParameter: RestParameterMeta;
-  readonly restArguments: RestParameterMeta["objectType"][];
-  readonly keywords: Keywords;
-  readonly keywordDescriptions: KeywordPropertyDescriptionsFromKeywordsMeta<Keywords>;
+  readonly Context: Context;
+  readonly InvocationInformation: InvocationInformation;
+  readonly CommandResult: CommandResult;
+  readonly TImmediateArgumentsObjectTypes: TImmediateArgumentsObjectTypes;
+  readonly TRestArgumentObjectType: TRestArgumentObjectType;
+  readonly TKeywordsMeta: TKeywordsMeta;
 };

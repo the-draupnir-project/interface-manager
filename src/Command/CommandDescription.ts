@@ -20,13 +20,14 @@ import { CommandParametersDescription } from "./ParameterParsing";
 export type CommandExecutorFunction<TCommandMeta extends CommandMeta> = (
   // The context needs to be specific to each command, and we need to add context glue
   // that can attenuate them.
-  context: unknown extends TCommandMeta["context"]
+  context: unknown extends TCommandMeta["Context"]
     ? never
-    : TCommandMeta["context"],
-  invocationInformation: TCommandMeta["invocationInformation"],
+    : TCommandMeta["Context"],
+  invocationInformation: TCommandMeta["InvocationInformation"],
   keywords: ParsedKeywords,
-  ...args: [...TCommandMeta["arguments"], TCommandMeta["restArguments"][number]]
-) => Promise<Result<TCommandMeta["commandResult"]>>;
+  rest: TCommandMeta["TRestArgumentObjectType"],
+  ...args: TCommandMeta["TImmediateArgumentsObjectTypes"]
+) => Promise<Result<TCommandMeta["CommandResult"]>>;
 
 export interface CommandDescription<
   TCommandMeta extends CommandMeta = CommandMeta,
@@ -36,7 +37,11 @@ export interface CommandDescription<
   readonly summary: string;
   /** A longer description that goes into detail. */
   readonly description?: string | undefined;
-  readonly parametersDescription: CommandParametersDescription<TCommandMeta>;
+  readonly parametersDescription: CommandParametersDescription<
+    TCommandMeta["TImmediateArgumentsObjectTypes"],
+    TCommandMeta["TRestArgumentObjectType"],
+    TCommandMeta["TKeywordsMeta"]
+  >;
 }
 
 export type ExtractCommandMeta<TCommandDescription> =

@@ -40,8 +40,9 @@ it("Can define and execute commands.", async function () {
     summary: "Ban a user from a room",
     async executor(
       context: Context,
-      _commandInfo,
+      _info,
       _keywords,
+      _rest,
       user,
       room
     ): Promise<Result<boolean>> {
@@ -55,7 +56,7 @@ it("Can define and execute commands.", async function () {
       {
         name: "target room",
         acceptor: MatrixRoomReferencePresentationSchema,
-        prompt: async function (
+        async prompt(
           context: Context
         ): Promise<Result<PromptOptions<MatrixRoomID>>> {
           return Ok({
@@ -83,6 +84,7 @@ it("Can define and execute commands.", async function () {
       BanCommand.parametersDescription.keywords,
       new Map()
     ),
+    [],
     new MatrixUserID("@foo:example.com" as StringUserID),
     MatrixRoomReference.fromRoomID("!foo:example.com" as StringRoomID, [])
   );

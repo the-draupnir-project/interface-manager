@@ -25,7 +25,6 @@ import {
   checkPresentationSchema,
   printPresentationSchema,
 } from "./PresentationSchema";
-import { ParameterMeta } from "./CommandMeta";
 
 /**
  * Describes a rest parameter for a command.
@@ -34,18 +33,17 @@ import { ParameterMeta } from "./CommandMeta";
  *
  * Any keywords in the rest of the command will be given to the `keywordParser`.
  */
-export interface RestDescription<
-  TParameterMeta extends ParameterMeta = ParameterMeta,
-> extends ParameterDescription<TParameterMeta> {
+export interface RestDescription<ObjectType = unknown>
+  extends ParameterDescription<ObjectType> {
   readonly name: string;
   /** The presentation type of each item. */
-  readonly acceptor: PresentationSchema<TParameterMeta["objectType"]>;
+  readonly acceptor: PresentationSchema<ObjectType>;
   parseRest(
     partialCommand: PartialCommand,
     promptForRest: boolean,
     keywordParser: KeywordParser
-  ): Result<Presentation<TParameterMeta["objectType"]>[]>;
-  readonly prompt?: Prompt<TParameterMeta> | undefined;
+  ): Result<Presentation<ObjectType>[]>;
+  prompt?: Prompt<ObjectType> | undefined;
   readonly description?: string | undefined;
 }
 
@@ -56,17 +54,17 @@ export interface RestDescription<
  *
  * Any keywords in the rest of the command will be given to the `keywordParser`.
  */
-export class StandardRestDescription<TParameterMeta extends ParameterMeta>
-  implements ParameterDescription<TParameterMeta>
+export class StandardRestDescription<ObjectType = unknown>
+  implements ParameterDescription<ObjectType>
 {
-  public readonly acceptor: PresentationSchema<TParameterMeta["objectType"]>;
+  public readonly acceptor: PresentationSchema<ObjectType>;
   constructor(
     public readonly name: string,
     /** The presentation type of each item. */
     acceptor:
-      | PresentationTypeWithoutWrap<TParameterMeta["objectType"]>
-      | PresentationSchema<TParameterMeta["objectType"]>,
-    public readonly prompt?: Prompt<TParameterMeta>,
+      | PresentationTypeWithoutWrap<ObjectType>
+      | PresentationSchema<ObjectType>,
+    public readonly prompt?: Prompt<ObjectType>,
     public readonly description?: string
   ) {
     if ("schemaType" in acceptor) {
@@ -90,9 +88,9 @@ export class StandardRestDescription<TParameterMeta extends ParameterMeta>
     partialCommand: PartialCommand,
     promptForRest: boolean,
     keywordParser: KeywordParser
-  ): Result<Presentation<TParameterMeta["objectType"]>[]> {
+  ): Result<Presentation<ObjectType>[]> {
     const stream = partialCommand.stream;
-    const items: Presentation<TParameterMeta["objectType"]>[] = [];
+    const items: Presentation<ObjectType>[] = [];
     if (
       this.prompt &&
       promptForRest &&
@@ -127,7 +125,7 @@ export class StandardRestDescription<TParameterMeta extends ParameterMeta>
             }
           );
         }
-        items.push(nextItem);
+        items.push(nextItem as Presentation<ObjectType>);
         stream.readItem(); // dispose of keyword's associated value from the stream.
       }
     }
@@ -135,18 +133,19 @@ export class StandardRestDescription<TParameterMeta extends ParameterMeta>
   }
 }
 
-export type DescribeRestParameters<
-  TParameterMeta extends ParameterMeta = ParameterMeta,
-> = Omit<RestDescription<TParameterMeta>, "parseRest" | "acceptor"> & {
+export type DescribeRestParameters<ObjectType = unknown> = Omit<
+  RestDescription<ObjectType>,
+  "parseRest" | "acceptor"
+> & {
   acceptor:
-    | PresentationTypeWithoutWrap<TParameterMeta["objectType"]>
-    | PresentationSchema<TParameterMeta["objectType"]>;
+    | PresentationTypeWithoutWrap<ObjectType>
+    | PresentationSchema<ObjectType>;
 };
 
-export function describeRestParameters<TParameterMeta extends ParameterMeta>(
-  options: DescribeRestParameters<TParameterMeta>
-): RestDescription<TParameterMeta> {
-  return new StandardRestDescription<TParameterMeta>(
+export function describeRestParameters<ObjectType = unknown>(
+  options: DescribeRestParameters<ObjectType>
+): RestDescription<ObjectType> {
+  return new StandardRestDescription<ObjectType>(
     options.name,
     options.acceptor,
     options.prompt,
