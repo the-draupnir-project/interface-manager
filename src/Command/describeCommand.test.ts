@@ -15,17 +15,18 @@ import {
   StringUserID,
 } from "@the-draupnir-project/matrix-basic-types";
 import { describeCommand } from "./describeCommand";
-import { Ok, Result, isOk } from "@gnuxie/typescript-result";
+import { Ok, Result, isError, isOk } from "@gnuxie/typescript-result";
 import {
   MatrixRoomIDPresentationType,
   MatrixRoomReferencePresentationSchema,
   MatrixUserIDPresentationType,
-  StringPresentationType,
+  readCommand,
 } from "../TextReader";
-import { ParsedKeywords, StandardParsedKeywords } from "./ParsedKeywords";
+import { StandardParsedKeywords } from "./ParsedKeywords";
 import { tuple } from "./ParameterParsing";
 import { PromptOptions } from "./PromptForAccept";
-import { describeKeywordParameters } from "./KeywordParameterDescription";
+import { makePartialCommand } from "./Command";
+import { StandardPresentationArgumentStream } from "./PresentationStream";
 
 it("Can define and execute commands.", async function () {
   type Context = {
@@ -93,25 +94,16 @@ it("Can define and execute commands.", async function () {
   expect(isOk(banResult)).toBe(true);
 });
 
-// DescribeKeywordProperty optionally
-// accepts an acceptor only when the type is flag, and replaces that
-// with the TopPresentationSchema once its is turned into a KeywordPropertyDescription.
 it("Can define keyword arguments.", async function () {
-  // so it's at this point that i ralised that we have no ability to test the parseAndInvoke
-  // functionality in unit tests here without implementing a MatrixInterfaceAdaptor,
-  // or some other adaptor for unit testing.
-  // Making that fake probably requires splitting out the arguments to the interface adaptor
-  // or the command dispatcher too, so that there's something that has all those callbacks
-  // defined on them and they can be optionally implemented by the consumer.
-  // That will make it really easy for people to get started using the library without wondering
-  // what the hell these 200 dependencies are that they have to instantiate somehow.
   const KeywordsCommandTest = describeCommand({
     summary: "A command to test keyword arguments",
     async executor(
       _context: never,
       _info: unknown,
-      keywords: ParsedKeywords
-    ): Promise<Result<unknown>> {},
+      _keywords
+    ): Promise<Result<unknown>> {
+      return Ok(undefined);
+    },
     parameters: [],
     keywords: {
       keywordDescriptions: {
@@ -133,4 +125,24 @@ it("Can define keyword arguments.", async function () {
       },
     },
   });
+  const parseResults = KeywordsCommandTest.parametersDescription.parse(
+    makePartialCommand(
+      new StandardPresentationArgumentStream(
+        readCommand(`--dry-run --room !foo:example.com`)
+      ),
+      KeywordsCommandTest,
+      []
+    )
+  );
+  if (isError(parseResults)) {
+    throw new TypeError(
+      `Failed to parse for some reason: ${parseResults.error.mostRelevantElaboration}`
+    );
+  }
+  const keywords = parseResults.ok.keywords;
+  expect(keywords.getKeywordValue("dry-run")).toBe(true);
+  expect(keywords.getKeywordValue("glob", false)).toBe(false);
+  expect(
+    keywords.getKeywordValue<MatrixRoomReference>("room")?.toRoomIDOrAlias()
+  ).toEqual("!foo:example.com");
 });
