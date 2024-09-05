@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-export * from "./AdaptorToCommandContextTranslator";
 export * from "./MatrixInterfaceAdaptor";
 export * from "./MatrixInterfaceCommandDispatcher";
 export * from "./MatrixRendererDescription";

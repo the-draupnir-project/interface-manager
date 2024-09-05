@@ -20,16 +20,13 @@ import {
 } from "../Command";
 import { MatrixRendererDescription } from "./MatrixRendererDescription";
 import { DocumentNode } from "../DeadDocument";
-import { AdaptorToCommandContextTranslator } from "./AdaptorToCommandContextTranslator";
-import {
-  StringEventID,
-  StringUserID,
-} from "@the-draupnir-project/matrix-basic-types";
+import { AdaptorContextToCommandContextTranslator } from "../Adaptor/AdaptorContextToCommandContextTranslator";
+import { StringUserID } from "@the-draupnir-project/matrix-basic-types";
 import { CommandMeta } from "../Command/CommandMeta";
+import { StandardCommandInvoker } from "../Adaptor";
 
 export type BasicInvocationInformation = {
   readonly commandSender: StringUserID;
-  readonly commandEventID: StringEventID;
 };
 
 export type InvocationInformationFromEventContext<
@@ -116,12 +113,14 @@ export type MatrixInterfaceRendererFailedCB<
 export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   implements MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
 {
+  private readonly commandInvoker =
+    new StandardCommandInvoker<BasicInvocationInformation>();
   private readonly renderers = new Map<
     CommandDescription,
     MatrixRendererDescription
   >();
   public constructor(
-    private readonly adaptorToCommandContextTranslator: AdaptorToCommandContextTranslator<AdaptorContext>,
+    private readonly adaptorToCommandContextTranslator: AdaptorContextToCommandContextTranslator<AdaptorContext>,
     private readonly invocationInformationFromEventContext: InvocationInformationFromEventContext<MatrixEventContext>,
     public readonly promptDefault: MatrixInterfaceAdaptor<
       AdaptorContext,
@@ -160,12 +159,10 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
         command.description,
         adaptorContext
       );
-    const commandResult = await command.description.executor(
-      commandContext as never,
+    const commandResult = await this.commandInvoker.invoke(
+      commandContext,
       this.invocationInformationFromEventContext(matrixEventContext),
-      command.keywords,
-      command.rest ?? [],
-      ...command.immediateArguments
+      command
     );
     return (await this.runRenderersOnCommandResult(
       command.toPartialCommand(),
@@ -317,8 +314,10 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
       partialCommand.description
     );
     const commandArguments = partialCommand.stream.rest();
-    const parseResult =
-      partialCommand.description.parametersDescription.parse(partialCommand);
+    const parseResult = this.commandInvoker.parseCommand(
+      this.invocationInformationFromEventContext(eventContext),
+      partialCommand
+    );
     if (isError(parseResult)) {
       if (parseResult.error instanceof PromptRequiredError) {
         const parameter = parseResult.error.parameterRequiringPrompt;
