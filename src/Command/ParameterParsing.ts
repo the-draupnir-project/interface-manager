@@ -81,6 +81,7 @@ export class StandardCommandParametersDescription<
     const hasPrompted = false;
     const keywordsParser = this.keywords.getParser();
     const stream = partialCommand.stream;
+    const immediateArgumentsStartPosition = stream.getPosition();
     for (const parameter of this.descriptions) {
       // it eats any keywords at any point in the stream
       // as they can appear at any point technically.
@@ -128,8 +129,11 @@ export class StandardCommandParametersDescription<
       restResult.ok === undefined ||
       restResult.ok.length === 0 ||
       restResult.ok[0] === undefined
-        ? stream.source
-        : stream.source.slice(0, stream.source.indexOf(restResult.ok[0]));
+        ? stream.source.slice(immediateArgumentsStartPosition)
+        : stream.source.slice(
+            immediateArgumentsStartPosition,
+            stream.source.indexOf(restResult.ok[0])
+          );
     return Ok({
       description: partialCommand.description,
       immediateArguments: immediateArguments.map((p) => p.object),

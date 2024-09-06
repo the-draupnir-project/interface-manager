@@ -44,7 +44,10 @@ export class StandardCommandDispatcher<BasicInvocationInformation>
       if (firstItem === undefined || typeof firstItem.object !== "string") {
         return ResultError.Result("No command found in the body.");
       }
-      const prefix = this.callbacks.prefixExtractor?.(firstItem.object);
+      const prefix =
+        this.callbacks.prefixExtractor === undefined
+          ? firstItem.object
+          : this.callbacks.prefixExtractor(firstItem.object);
       if (prefix === undefined) {
         return ResultError.Result(
           "Could not extract a prefix from the body, the body does not contain a command."

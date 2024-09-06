@@ -20,6 +20,8 @@ import {
   MatrixRoomIDPresentationType,
   MatrixRoomReferencePresentationSchema,
   MatrixUserIDPresentationType,
+  StandardJSInterfaceCommandDispatcher,
+  StringPresentationType,
   readCommand,
 } from "../TextReader";
 import { StandardParsedKeywords } from "./ParsedKeywords";
@@ -27,6 +29,9 @@ import { tuple } from "./ParameterParsing";
 import { PromptOptions } from "./PromptForAccept";
 import { makePartialCommand } from "./Command";
 import { StandardPresentationArgumentStream } from "./PresentationStream";
+import { StandardCommandTable } from "./CommandTable";
+import { union } from "./PresentationSchema";
+import { CommandDescription } from "./CommandDescription";
 
 it("Can define and execute commands.", async function () {
   type Context = {
@@ -145,4 +150,53 @@ it("Can define keyword arguments.", async function () {
   expect(
     keywords.getKeywordValue<MatrixRoomReference>("room")?.toRoomIDOrAlias()
   ).toEqual("!foo:example.com");
+});
+
+it("end to end test a command that parses mxids", async function () {
+  const tableName = Symbol("ParseTest");
+  const testTable = new StandardCommandTable(tableName);
+  const helpCommand = describeCommand({
+    summary: "Mimicks the help command",
+    parameters: [],
+    async executor(): Promise<Result<string>> {
+      return Ok("here is your help");
+    },
+  });
+  const unbanCommand = describeCommand({
+    summary: "Mimicks the unban command",
+    parameters: tuple({
+      name: "entity",
+      acceptor: union(
+        MatrixUserIDPresentationType,
+        MatrixRoomReferencePresentationSchema,
+        StringPresentationType
+      ),
+    }),
+    async executor(
+      _context: never,
+      _info,
+      _keywords,
+      _rest,
+      entity
+    ): Promise<Result<MatrixRoomReference | string | MatrixUserID>> {
+      return Ok(entity);
+    },
+  });
+  testTable.internCommand(unbanCommand as CommandDescription, [
+    "draupnir",
+    "unban",
+  ]);
+  const dispatcher = new StandardJSInterfaceCommandDispatcher(
+    testTable,
+    helpCommand,
+    undefined
+  );
+  const result = await dispatcher.invokeCommandFromBody(
+    { commandSender: "@test:localhost" as StringUserID },
+    "draupnir unban @spam:example.com"
+  );
+  if (isError(result)) {
+    throw new TypeError(`Not supposed to be error mate`);
+  }
+  expect(result.ok).toBeInstanceOf(MatrixUserID);
 });

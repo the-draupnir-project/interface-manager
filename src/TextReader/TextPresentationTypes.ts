@@ -18,7 +18,7 @@ import {
 import { Presentation, definePresentationType } from "../Command/Presentation";
 import { Keyword } from "../Command/Keyword";
 import { TextPresentationRenderer } from "./TextPresentationRenderer";
-import { union } from "../Command";
+import { union } from "../Command/PresentationSchema";
 
 /**
  * If you are wondering why commands specify on presentation type and not

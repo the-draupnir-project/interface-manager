@@ -128,12 +128,12 @@ export class StandardCommandTable implements CommandTable {
         // Then they might be using something like "!mjolnir status"
         return startingTableEntry;
       }
-      stream.readItem(); // dispose of the argument.
       const entry = startingTableEntry.subCommands?.get(nextArgument.object);
       if (!entry) {
         // The reason there's no match is because this is the command arguments, rather than subcommand notation.
         return startingTableEntry;
       } else {
+        stream.readItem(); // dispose of the argument.
         return tableHelper(entry, argumentStream);
       }
     };
