@@ -157,35 +157,38 @@ export class StandardCommandTable implements CommandTable {
   private internCommandHelper(
     command: CommandDescription,
     originalTable: CommandTable,
-    tableEntry: BaseCommandTableEntry,
-    designator: string[]
+    currentTableEntry: BaseCommandTableEntry,
+    originalDesignator: string[],
+    currentDesignator: string[]
   ): void {
-    const currentDesignator = designator.shift();
-    if (currentDesignator === undefined) {
-      if (tableEntry.currentCommand) {
+    const currentDesignatorPart = currentDesignator.shift();
+    if (currentDesignatorPart === undefined) {
+      if (currentTableEntry.currentCommand) {
         throw new TypeError(
-          `There is already a command for ${JSON.stringify(designator)}`
+          `There is already a command for ${JSON.stringify(originalDesignator)}`
         );
       }
-      tableEntry.currentCommand = command;
+      currentTableEntry.currentCommand = command;
       if (originalTable === this) {
-        this.exportedCommands.add(tableEntry as CommandTableEntry);
+        this.exportedCommands.add(currentTableEntry as CommandTableEntry);
       }
-      this.flattenedCommands.add(tableEntry as CommandTableEntry);
+      this.flattenedCommands.add(currentTableEntry as CommandTableEntry);
     } else {
-      if (tableEntry.subCommands === undefined) {
-        tableEntry.subCommands = new Map();
+      if (currentTableEntry.subCommands === undefined) {
+        currentTableEntry.subCommands = new Map();
       }
       const nextLookupEntry =
-        tableEntry.subCommands.get(currentDesignator) ??
+        currentTableEntry.subCommands.get(currentDesignatorPart) ??
         ((lookup: BaseCommandTableEntry) => (
-          tableEntry.subCommands.set(currentDesignator, lookup), lookup
-        ))({ designator: [], sourceTable: this });
+          currentTableEntry.subCommands.set(currentDesignatorPart, lookup),
+          lookup
+        ))({ designator: originalDesignator, sourceTable: this });
       this.internCommandHelper(
         command,
         originalTable,
         nextLookupEntry,
-        designator
+        originalDesignator,
+        currentDesignator
       );
     }
   }
@@ -194,7 +197,13 @@ export class StandardCommandTable implements CommandTable {
     command: CommandDescription,
     designator: string[]
   ): this {
-    this.internCommandHelper(command, this, this.commands, designator);
+    this.internCommandHelper(
+      command,
+      this,
+      this.commands,
+      designator,
+      [...designator] // this array gets mutated.
+    );
     return this;
   }
 
@@ -222,11 +231,13 @@ export class StandardCommandTable implements CommandTable {
       baseDesignator,
     });
     for (const command of importedTable.getAllCommands()) {
+      const designator = [...baseDesignator, ...command.designator];
       this.internCommandHelper(
         command.currentCommand,
         importedTable,
         this.commands,
-        [...baseDesignator, ...command.designator]
+        designator,
+        [...designator] // this array gets mutated.
       );
     }
   }
