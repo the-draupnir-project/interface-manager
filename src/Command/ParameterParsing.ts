@@ -141,7 +141,15 @@ export class StandardCommandParametersDescription<
       rest: restResult.ok?.map((p) => p.object) ?? [],
       designator: partialCommand.designator,
       isPartial: false,
-    } as CompleteCommand);
+      toPartialCommand() {
+        return {
+          description: partialCommand.description,
+          stream: stream,
+          isPartial: true,
+          designator: partialCommand.designator,
+        };
+      },
+    });
   }
 }
 
