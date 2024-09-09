@@ -23,7 +23,11 @@ import { DocumentNode } from "../DeadDocument";
 import { AdaptorContextToCommandContextTranslator } from "../Adaptor/AdaptorContextToCommandContextTranslator";
 import { StringUserID } from "@the-draupnir-project/matrix-basic-types";
 import { CommandMeta } from "../Command/CommandMeta";
-import { StandardCommandInvoker } from "../Adaptor";
+import {
+  CommandInvoker,
+  CommandInvokerCallbacks,
+  StandardCommandInvoker,
+} from "../Adaptor";
 
 export type BasicInvocationInformation = {
   readonly commandSender: StringUserID;
@@ -113,8 +117,7 @@ export type MatrixInterfaceRendererFailedCB<
 export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   implements MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
 {
-  private readonly commandInvoker =
-    new StandardCommandInvoker<BasicInvocationInformation>();
+  private readonly commandInvoker: CommandInvoker<BasicInvocationInformation>;
   private readonly renderers = new Map<
     CommandDescription,
     MatrixRendererDescription
@@ -142,9 +145,10 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     private readonly rendererFailedCB: MatrixInterfaceRendererFailedCB<
       AdaptorContext,
       MatrixEventContext
-    >
+    >,
+    commandInvokerCallbacks: CommandInvokerCallbacks<BasicInvocationInformation>
   ) {
-    // nothing to do.
+    this.commandInvoker = new StandardCommandInvoker(commandInvokerCallbacks);
   }
   public async invoke<CommandResult>(
     command: CompleteCommand,

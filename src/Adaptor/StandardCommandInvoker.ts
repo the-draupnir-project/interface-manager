@@ -17,8 +17,8 @@ export class StandardCommandInvoker<CommandInformation>
   implements CommandInvoker<CommandInformation>
 {
   private readonly callbacks: CommandInvokerCallbacks<CommandInformation>;
-  public constructor(callbacks?: CommandInvokerCallbacks<CommandInformation>) {
-    this.callbacks = callbacks ?? {};
+  public constructor(callbacks: CommandInvokerCallbacks<CommandInformation>) {
+    this.callbacks = callbacks;
   }
   parseCommand(
     commandInformation: CommandInformation,
