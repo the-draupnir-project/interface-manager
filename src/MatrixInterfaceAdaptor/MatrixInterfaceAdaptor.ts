@@ -58,22 +58,6 @@ export interface MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
     adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext
   ): Promise<Result<void>>;
-  promptDefault<ObjectType = unknown>(
-    adaptorContext: AdaptorContext,
-    eventContext: MatrixEventContext,
-    parameter: ParameterDescription<ObjectType>,
-    command: PartialCommand,
-    defaultPrompt: Presentation<ObjectType>,
-    existingArguments: Presentation[]
-  ): Promise<Result<void>>;
-  promptSuggestions<ObjectType>(
-    adaptorContext: AdaptorContext,
-    eventContext: MatrixEventContext,
-    parameter: ParameterDescription<ObjectType>,
-    command: PartialCommand,
-    suggestions: Presentation<ObjectType>[],
-    existingArguments: Presentation[]
-  ): Promise<Result<void>>;
   registerRendererDescription<TCommandDescription extends CommandDescription>(
     commandDescription: TCommandDescription,
     rendererDescription: MatrixRendererDescription
@@ -114,6 +98,41 @@ export type MatrixInterfaceRendererFailedCB<
   error: ResultError
 ) => void;
 
+export type MatrixInterfaceAdaptorCallbacks<
+  AdaptorContext,
+  MatrixEventContext,
+> = {
+  readonly promptDefault: <ObjectType = unknown>(
+    adaptorContext: AdaptorContext,
+    eventContext: MatrixEventContext,
+    parameter: ParameterDescription<ObjectType>,
+    command: PartialCommand,
+    defaultPrompt: Presentation<ObjectType>,
+    existingArguments: Presentation[]
+  ) => Promise<Result<void>>;
+  readonly promptSuggestions: <ObjectType>(
+    adaptorContext: AdaptorContext,
+    eventContext: MatrixEventContext,
+    parameter: ParameterDescription<ObjectType>,
+    command: PartialCommand,
+    suggestions: Presentation<ObjectType>[],
+    existingArguments: Presentation[]
+  ) => Promise<Result<void>>;
+  /** Render the result and return an error if there was a problem while rendering. */
+  readonly defaultRenderer: MatrixInterfaceDefaultRenderer<
+    AdaptorContext,
+    MatrixEventContext
+  >;
+  readonly matrixEventsFromDeadDocument: MatrixInterfaceEventsFromDeadDocument<
+    AdaptorContext,
+    MatrixEventContext
+  >;
+  readonly rendererFailedCB: MatrixInterfaceRendererFailedCB<
+    AdaptorContext,
+    MatrixEventContext
+  >;
+};
+
 export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   implements MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
 {
@@ -122,33 +141,21 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     CommandDescription,
     MatrixRendererDescription
   >();
+  private readonly callbacks: MatrixInterfaceAdaptorCallbacks<
+    AdaptorContext,
+    MatrixEventContext
+  >;
   public constructor(
     private readonly adaptorToCommandContextTranslator: AdaptorContextToCommandContextTranslator<AdaptorContext>,
     private readonly invocationInformationFromEventContext: InvocationInformationFromEventContext<MatrixEventContext>,
-    public readonly promptDefault: MatrixInterfaceAdaptor<
-      AdaptorContext,
-      MatrixEventContext
-    >["promptDefault"],
-    public readonly promptSuggestions: MatrixInterfaceAdaptor<
-      AdaptorContext,
-      MatrixEventContext
-    >["promptSuggestions"],
-    /** Render the result and return an error if there was a problem while rendering. */
-    private readonly defaultRenderer: MatrixInterfaceDefaultRenderer<
-      AdaptorContext,
-      MatrixEventContext
-    >,
-    private readonly matrixEventsFromDeadDocument: MatrixInterfaceEventsFromDeadDocument<
-      AdaptorContext,
-      MatrixEventContext
-    >,
-    private readonly rendererFailedCB: MatrixInterfaceRendererFailedCB<
+    interfaceAdaptorCallbacks: MatrixInterfaceAdaptorCallbacks<
       AdaptorContext,
       MatrixEventContext
     >,
     commandInvokerCallbacks: CommandInvokerCallbacks<BasicInvocationInformation>
   ) {
     this.commandInvoker = new StandardCommandInvoker(commandInvokerCallbacks);
+    this.callbacks = interfaceAdaptorCallbacks;
   }
   public async invoke<CommandResult>(
     command: CompleteCommand,
@@ -219,7 +226,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     ]);
     for (const result of renderResults) {
       if (isError(result)) {
-        this.rendererFailedCB(
+        this.callbacks.rendererFailedCB(
           adaptorContext,
           matrixEventContext,
           partialCommand,
@@ -238,7 +245,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     commandResult: Result<unknown>
   ): Promise<Result<void>> {
     if (renderer.isAlwaysSupposedToUseDefaultRenderer) {
-      return await this.defaultRenderer(
+      return await this.callbacks.defaultRenderer(
         adaptorContext,
         eventContext,
         command,
@@ -263,7 +270,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
       if (document.ok === undefined) {
         return Ok(undefined); // Renderer is telling us it doesn't want to render anything.
       }
-      return await this.matrixEventsFromDeadDocument(
+      return await this.callbacks.matrixEventsFromDeadDocument(
         adaptorContext,
         eventContext,
         document.ok
@@ -341,7 +348,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
         const promptOptions = promptOptionsResult.ok;
         const promptResult =
           promptOptions.default === undefined
-            ? await this.promptSuggestions(
+            ? await this.callbacks.promptSuggestions(
                 adaptorContext,
                 eventContext,
                 parameter,
@@ -349,7 +356,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
                 promptOptions.suggestions,
                 commandArguments
               )
-            : await this.promptDefault(
+            : await this.callbacks.promptDefault(
                 adaptorContext,
                 eventContext,
                 parameter,
