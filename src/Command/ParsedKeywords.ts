@@ -53,3 +53,33 @@ export class StandardParsedKeywords<
     }
   }
 }
+
+export class DirectParsedKeywords<
+  TKeywordsMeta extends KeywordsMeta = KeywordsMeta,
+> implements ParsedKeywords
+{
+  constructor(
+    private readonly description: KeywordParametersDescription<TKeywordsMeta>,
+    public readonly keywords: TKeywordsMeta
+  ) {
+    // nothing to do.
+  }
+
+  public getKeywordValue<ObjectType = unknown>(
+    keyword: string,
+    defaultValue?: ObjectType | undefined
+  ): ObjectType | undefined {
+    const keywordDescription = this.description.keywordDescriptions[keyword];
+    if (keywordDescription === undefined) {
+      throw new TypeError(
+        `${keyword} is not a keyword that has been described for this command.`
+      );
+    }
+    const value = this.keywords[keyword];
+    if (value === undefined) {
+      return defaultValue;
+    } else {
+      return value as ObjectType;
+    }
+  }
+}
