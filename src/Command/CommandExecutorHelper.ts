@@ -9,29 +9,53 @@
 
 import { Result } from "@gnuxie/typescript-result";
 import { CommandDescription } from "./CommandDescription";
-import { CommandMeta } from "./CommandMeta";
+import { CommandMeta, KeywordsMeta } from "./CommandMeta";
 import { DirectParsedKeywords } from "./ParsedKeywords";
 
-export type CommandExecutorHelperOptions<TCommandMeta extends CommandMeta> = {
-  info?: TCommandMeta["InvocationInformation"] | undefined;
-  rest?: TCommandMeta["TRestArgumentObjectType"][] | undefined;
-  keywords?: Partial<TCommandMeta["TKeywordsMeta"]> | undefined;
+export type CommandExecutorHelperOptions<
+  TInvocationInformation,
+  TRestArgumentObjectType,
+  TKeywordsMeta extends KeywordsMeta,
+> = {
+  info?: TInvocationInformation | undefined;
+  rest?: TRestArgumentObjectType[] | undefined;
+  keywords?: Partial<TKeywordsMeta> | undefined;
 };
 
 export const CommandExecutorHelper = Object.freeze({
-  async execute<TCommandMeta extends CommandMeta>(
-    command: CommandDescription<TCommandMeta>,
-    context: TCommandMeta["Context"],
-    options: CommandExecutorHelperOptions<TCommandMeta>,
-    ...args: TCommandMeta["TImmediateArgumentsObjectTypes"]
-  ): Promise<Result<CommandMeta["CommandResult"]>> {
+  async execute<
+    TCommandContext,
+    TInvocationInformation,
+    TCommandResult,
+    TImmediateArgumentsObjectTypes extends unknown[],
+    TRestArgumentObjectType,
+    TKeywordsMeta extends KeywordsMeta,
+  >(
+    command: CommandDescription<
+      CommandMeta<
+        TCommandContext,
+        TInvocationInformation,
+        TCommandResult,
+        TImmediateArgumentsObjectTypes,
+        TRestArgumentObjectType,
+        TKeywordsMeta
+      >
+    >,
+    context: TCommandContext,
+    options: CommandExecutorHelperOptions<
+      TInvocationInformation,
+      TRestArgumentObjectType,
+      TKeywordsMeta
+    >,
+    ...args: TImmediateArgumentsObjectTypes
+  ): Promise<Result<TCommandResult>> {
     const parsedKeywords = new DirectParsedKeywords(
       command.parametersDescription.keywords,
       options.keywords ?? {}
     );
     return await command.executor(
       context as never,
-      options.info ?? {},
+      options.info ?? ({} as TInvocationInformation),
       parsedKeywords,
       options.rest ?? [],
       ...args
