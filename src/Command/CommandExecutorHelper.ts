@@ -15,7 +15,7 @@ import { DirectParsedKeywords } from "./ParsedKeywords";
 export type CommandExecutorHelperOptions<TCommandMeta extends CommandMeta> = {
   info?: TCommandMeta["InvocationInformation"] | undefined;
   rest?: TCommandMeta["TRestArgumentObjectType"][] | undefined;
-  keywords?: TCommandMeta["TKeywordsMeta"] | undefined;
+  keywords?: Partial<TCommandMeta["TKeywordsMeta"]> | undefined;
 };
 
 export const CommandExecutorHelper = Object.freeze({
