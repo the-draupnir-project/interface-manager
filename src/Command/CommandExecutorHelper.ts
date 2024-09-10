@@ -7,10 +7,16 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { Result } from "@gnuxie/typescript-result";
+import { Result, isError } from "@gnuxie/typescript-result";
 import { CommandDescription } from "./CommandDescription";
 import { CommandMeta, KeywordsMeta } from "./CommandMeta";
 import { DirectParsedKeywords } from "./ParsedKeywords";
+import { StandardCommandInvoker } from "../Adaptor";
+import { PartialCommand } from "./Command";
+import { StandardPresentationArgumentStream } from "./PresentationStream";
+import { Presentation } from "./Presentation";
+import { KeywordPresentationType } from "../TextReader";
+import { Keyword } from "./Keyword";
 
 export type CommandExecutorHelperOptions<
   TInvocationInformation,
@@ -20,6 +26,18 @@ export type CommandExecutorHelperOptions<
   info?: TInvocationInformation | undefined;
   rest?: TRestArgumentObjectType[] | undefined;
   keywords?: Partial<TKeywordsMeta> | undefined;
+};
+
+type CommandExecutorHelperParseOptions<
+  TInvocationInformation,
+  TRestArgumentObjectType,
+  TKeywordsMeta extends KeywordsMeta,
+> = {
+  info?: TInvocationInformation | undefined;
+  rest?: Presentation<TRestArgumentObjectType>[] | undefined;
+  keywords?:
+    | Partial<{ [I in keyof TKeywordsMeta]: Presentation<TKeywordsMeta[I]> }>
+    | undefined;
 };
 
 export const CommandExecutorHelper = Object.freeze({
@@ -60,5 +78,78 @@ export const CommandExecutorHelper = Object.freeze({
       options.rest ?? [],
       ...args
     );
+  },
+  async parseAndInvoke<
+    TCommandContext,
+    TInvocationInformation,
+    TCommandResult,
+    TImmediateArgumentsObjectTypes extends unknown[],
+    TRestArgumentObjectType,
+    TKeywordsMeta extends KeywordsMeta,
+  >(
+    command: CommandDescription<
+      CommandMeta<
+        TCommandContext,
+        TInvocationInformation,
+        TCommandResult,
+        TImmediateArgumentsObjectTypes,
+        TRestArgumentObjectType,
+        TKeywordsMeta
+      >
+    >,
+    context: TCommandContext,
+    options: CommandExecutorHelperParseOptions<
+      TInvocationInformation,
+      TRestArgumentObjectType,
+      TKeywordsMeta
+    >,
+    ...args: {
+      [I in keyof TImmediateArgumentsObjectTypes]:
+        | Presentation<TImmediateArgumentsObjectTypes[I]>
+        | undefined;
+    }
+  ): Promise<Result<TCommandResult>> {
+    type TPartialCommand = PartialCommand<
+      CommandMeta<
+        TCommandContext,
+        TInvocationInformation,
+        TCommandResult,
+        TImmediateArgumentsObjectTypes,
+        TRestArgumentObjectType,
+        TKeywordsMeta
+      >
+    >;
+    const commandInvoker = new StandardCommandInvoker({});
+    const flatKeywords: Presentation[] = [];
+    for (const [key, value] of Object.entries(options.keywords ?? {})) {
+      flatKeywords.push(KeywordPresentationType.wrap(new Keyword(key)));
+      flatKeywords.push(value as Presentation);
+    }
+    const partialcommand = {
+      description: command,
+      designator: ["CommandExecutorHelper"],
+      isPartial: true,
+      stream: new StandardPresentationArgumentStream([
+        ...args.reduce<Presentation[]>(
+          (acc, arg) => (arg ? [...acc, arg] : acc),
+          []
+        ),
+        ...flatKeywords,
+        ...(options.rest ?? []),
+      ]),
+    } satisfies TPartialCommand;
+    const parseResult = commandInvoker.parseCommand(
+      options.info,
+      partialcommand as never
+    );
+    if (isError(parseResult)) {
+      return parseResult;
+    } else {
+      return (await commandInvoker.invoke(
+        context,
+        options.info,
+        parseResult.ok
+      )) as Result<TCommandResult>;
+    }
   },
 });
