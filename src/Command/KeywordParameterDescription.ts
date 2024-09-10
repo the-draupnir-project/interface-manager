@@ -148,14 +148,12 @@ export class KeywordParser<TKeywordsMeta extends KeywordsMeta = KeywordsMeta> {
 
   public parseRest(
     partialCommand: PartialCommand,
-    shouldPromptForRest = false,
     restDescription?: RestDescription
   ): Result<Presentation[] | undefined> {
     const stream = partialCommand.stream;
     if (restDescription !== undefined) {
       return restDescription.parseRest(
         partialCommand,
-        shouldPromptForRest,
         this as unknown as KeywordParser
       );
     } else {

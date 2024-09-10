@@ -45,7 +45,6 @@ export interface RestDescription<ObjectType = unknown>
   readonly acceptor: PresentationSchema<ObjectType>;
   parseRest(
     partialCommand: PartialCommand,
-    promptForRest: boolean,
     keywordParser: KeywordParser
   ): Result<Presentation<ObjectType>[]>;
   prompt?: RestPrompt<ObjectType> | undefined;
@@ -91,16 +90,11 @@ export class StandardRestDescription<ObjectType = unknown>
    */
   public parseRest(
     partialCommand: PartialCommand,
-    promptForRest: boolean,
     keywordParser: KeywordParser
   ): Result<Presentation<ObjectType>[]> {
     const stream = partialCommand.stream;
     const items: Presentation<ObjectType>[] = [];
-    if (
-      this.prompt &&
-      promptForRest &&
-      stream.peekItem(undefined) === undefined
-    ) {
+    if (this.prompt && stream.peekItem(undefined) === undefined) {
       return PromptRequiredError.Result(
         `A prompt is required for the missing argument for the ${this.name} parameter`,
         {

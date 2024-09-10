@@ -78,7 +78,6 @@ export class StandardCommandParametersDescription<
   ) {}
 
   public parse(partialCommand: PartialCommand): Result<CompleteCommand> {
-    const hasPrompted = false;
     const keywordsParser = this.keywords.getParser();
     const stream = partialCommand.stream;
     const immediateArgumentsStartPosition = stream.getPosition();
@@ -117,11 +116,7 @@ export class StandardCommandParametersDescription<
       }
       stream.readItem(); // disopose of argument.
     }
-    const restResult = keywordsParser.parseRest(
-      partialCommand,
-      hasPrompted,
-      this.rest
-    );
+    const restResult = keywordsParser.parseRest(partialCommand, this.rest);
     if (isError(restResult)) {
       return restResult;
     }
