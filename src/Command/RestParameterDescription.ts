@@ -99,7 +99,6 @@ export class StandardRestDescription<ObjectType = unknown>
     if (
       this.prompt &&
       promptForRest &&
-      stream.isPromptable() &&
       stream.peekItem(undefined) === undefined
     ) {
       return PromptRequiredError.Result(

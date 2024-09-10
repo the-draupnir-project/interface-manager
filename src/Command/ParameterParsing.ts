@@ -91,9 +91,9 @@ export class StandardCommandParametersDescription<
       }
       const nextItem = stream.peekItem();
       if (nextItem === undefined) {
-        if (parameter.prompt && stream.isPromptable()) {
+        if (parameter.prompt) {
           return PromptRequiredError.Result(
-            `A prompt is required for the parameter ${parameter.name}`,
+            `An argument for the parameter ${parameter.name} was expected but was not provided. A prompt is available for this parameter.`,
             {
               promptParameter: parameter,
               partialCommand: partialCommand,

@@ -18,7 +18,6 @@ export interface PresentationArgumentStream
   rest(): Presentation[];
   // All of the read items before the current position.
   priorItems(): Presentation[];
-  isPromptable(): boolean;
 }
 
 export class StandardPresentationArgumentStream
@@ -31,10 +30,6 @@ export class StandardPresentationArgumentStream
 
   public priorItems(): Presentation[] {
     return this.source.slice(0, this.position);
-  }
-
-  public isPromptable(): boolean {
-    return false;
   }
 }
 
