@@ -13,7 +13,7 @@
 // </text>
 
 import { Ok, Result, isError } from "@gnuxie/typescript-result";
-import { ParameterDescription } from "./ParameterDescription";
+import { ParameterDescription, Prompt } from "./ParameterDescription";
 import { Presentation, PresentationTypeWithoutWrap } from "./Presentation";
 import { KeywordParser } from "./KeywordParameterDescription";
 import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
@@ -25,11 +25,6 @@ import {
   checkPresentationSchema,
   printPresentationSchema,
 } from "./PresentationSchema";
-import { RestPromptOptions } from "./PromptForAccept";
-
-export type RestPrompt<ObjectType> = <Context extends never = never>(
-  context: Context
-) => Promise<Result<RestPromptOptions<ObjectType>>>;
 
 /**
  * Describes a rest parameter for a command.
@@ -39,7 +34,7 @@ export type RestPrompt<ObjectType> = <Context extends never = never>(
  * Any keywords in the rest of the command will be given to the `keywordParser`.
  */
 export interface RestDescription<ObjectType = unknown>
-  extends Omit<ParameterDescription<ObjectType>, "prompt"> {
+  extends ParameterDescription<ObjectType> {
   readonly name: string;
   /** The presentation type of each item. */
   readonly acceptor: PresentationSchema<ObjectType>;
@@ -47,7 +42,6 @@ export interface RestDescription<ObjectType = unknown>
     partialCommand: PartialCommand,
     keywordParser: KeywordParser
   ): Result<Presentation<ObjectType>[]>;
-  prompt?: RestPrompt<ObjectType> | undefined;
   readonly description?: string | undefined;
 }
 
@@ -68,7 +62,7 @@ export class StandardRestDescription<ObjectType = unknown>
     acceptor:
       | PresentationTypeWithoutWrap<ObjectType>
       | PresentationSchema<ObjectType>,
-    public readonly prompt?: RestPrompt<ObjectType>,
+    public readonly prompt?: Prompt<ObjectType>,
     public readonly description?: string
   ) {
     if ("schemaType" in acceptor) {
