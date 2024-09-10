@@ -337,8 +337,13 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
             `A PromptRequiredError was given for a parameter which doesn't support prompts, this shouldn't happen`
           );
         }
+        const commandContext =
+          this.adaptorToCommandContextTranslator.translateContext(
+            partialCommand.description,
+            adaptorContext
+          );
         const promptOptionsResult = await parameter.prompt(
-          adaptorContext as never // weh, we know we have the right adaptorContext, it's just being annoying while we avoid controvariance.
+          commandContext as never // weh, we know we have the right adaptorContext, it's just being annoying while we avoid controvariance.
         );
         if (isError(promptOptionsResult)) {
           return promptOptionsResult.elaborate(
