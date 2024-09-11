@@ -63,6 +63,16 @@ DraupnirInterfaceAdaptor.describeRenderer(
 );
 ```
 
+## Getting started
+
+At some point in the near future we will create a simple bot that will
+act as a template repository that can be copied and edited.
+
+In the meantime Draupnir's glue/setup code for the library can be
+found
+[here](https://github.com/the-draupnir-project/Draupnir/blob/main/src/commands/interface-manager/MPSMatrixInterfaceAdaptor.ts)
+and this code is licensed under Apache-2.0.
+
 ## Contributing & Opening Issues
 
 Draupnir wants to be yours as much as it is ours. Please see or
