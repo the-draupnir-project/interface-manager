@@ -1,6 +1,6 @@
 {
   "name": "@the-draupnir-project/interface-manager",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -25,7 +25,7 @@
   "devDependencies": {
     "@eslint/js": "^9.8.0",
     "@gnuxie/tsconfig": "^0.5.5",
-    "@the-draupnir-project/matrix-basic-types": "^0.1.1",
+    "@the-draupnir-project/matrix-basic-types": "^0.2.0",
     "@types/eslint__js": "^8.42.3",
     "@types/jest": "^29.5.12",
     "eslint": "^9.8.0",
@@ -37,9 +37,9 @@
   },
   "dependencies": {
     "@gnuxie/super-cool-stream": "^0.2.1",
-    "@gnuxie/typescript-result": "^0.2.0"
+    "@gnuxie/typescript-result": "^1.0.0"
   },
   "peerDependencies": {
-    "@the-draupnir-project/matrix-basic-types": "^0.1.1"
+    "@the-draupnir-project/matrix-basic-types": "^0.2.0"
   }
 }
