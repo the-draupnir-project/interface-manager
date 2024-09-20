@@ -66,6 +66,12 @@ export interface MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
     commandDescription: CommandDescription<TCommandMeta>,
     rendererDescription: DescribeMatrixRenderer<TCommandMeta["CommandResult"]>
   ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>;
+  isDescribingRendererForCommand<
+    TCommandDescription extends CommandDescription,
+  >(
+    commandDescription: TCommandDescription
+  ): boolean;
+  renderedCommands(): CommandDescription[];
 }
 
 export type MatrixInterfaceDefaultRenderer<
@@ -387,6 +393,16 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
       }
     }
     return await this.invoke(parseResult.ok, adaptorContext, eventContext);
+  }
+
+  public isDescribingRendererForCommand<
+    TCommandDescription extends CommandDescription,
+  >(commandDescription: TCommandDescription): boolean {
+    return this.renderers.has(commandDescription);
+  }
+
+  public renderedCommands(): CommandDescription[] {
+    return [...this.renderers.keys()];
   }
 }
 

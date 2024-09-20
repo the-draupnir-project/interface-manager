@@ -47,7 +47,12 @@ export class StandardMatrixInterfaceCommandDispatcher<
     private readonly commandTable: CommandTable,
     private readonly helpCommand: CommandDescription,
     private readonly invocationInformationFromEventContext: InvocationInformationFromEventContext<MatrixEventContext>,
-    callbacks?: CommandDispatcherCallbacks<BasicInvocationInformation>
+    callbacks?: CommandDispatcherCallbacks<BasicInvocationInformation>,
+    /**
+     * Sometimes it is useful to check whether all commands in a table have a renderer, and all renderers have a command in the table.
+     * Becuase people can forget to import them properly. This can be disabled if table imports are dynamic.
+     */
+    verifyOptions?: { verifyRenderers?: boolean; verifyTable?: boolean }
   ) {
     this.baseDispatcher =
       new StandardCommandDispatcher<BasicInvocationInformation>(
@@ -55,6 +60,12 @@ export class StandardMatrixInterfaceCommandDispatcher<
         this.helpCommand,
         callbacks ?? {}
       );
+    if (verifyOptions?.verifyRenderers ?? true) {
+      this.verifyAdaptorRenderingAllCommands();
+    }
+    if (verifyOptions?.verifyTable ?? true) {
+      this.verifyTableImportingAllRenderedCommands();
+    }
   }
 
   handleCommandFromPresentationStream(
@@ -91,5 +102,29 @@ export class StandardMatrixInterfaceCommandDispatcher<
       this.adaptorContext,
       eventContext
     );
+  }
+
+  private verifyAdaptorRenderingAllCommands(): void {
+    for (const command of this.commandTable.getAllCommands()) {
+      if (
+        !this.interfaceAdaptor.isDescribingRendererForCommand(
+          command.currentCommand
+        )
+      ) {
+        throw new TypeError(
+          `Adaptor does not render command ${command.designator.toString()}`
+        );
+      }
+    }
+  }
+
+  private verifyTableImportingAllRenderedCommands(): void {
+    for (const command of this.interfaceAdaptor.renderedCommands()) {
+      if (!this.commandTable.isContainingCommand(command)) {
+        throw new TypeError(
+          `Command table does not contain a command that is specified in the interface adaptor ${command.summary}\n${command.description}`
+        );
+      }
+    }
   }
 }

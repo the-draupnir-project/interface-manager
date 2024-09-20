@@ -80,11 +80,15 @@ export interface CommandTable {
    * protection defined would be  ["join", "wave", "status"] in this table.
    */
   importTable(table: CommandTable, baseDesignator: string[]): void;
+  isContainingCommand(command: CommandDescription): boolean;
 }
 
 export class StandardCommandTable implements CommandTable {
   private readonly exportedCommands = new Set<CommandTableEntry>();
-  private readonly flattenedCommands = new Set<CommandTableEntry>();
+  private readonly flattenedCommands = new Map<
+    CommandDescription,
+    CommandTableEntry
+  >();
   private readonly commands: BaseCommandTableEntry = {
     designator: [],
     sourceTable: this,
@@ -99,7 +103,7 @@ export class StandardCommandTable implements CommandTable {
    * @returns All of the commands in this table.
    */
   public getAllCommands(): CommandTableEntry[] {
-    return [...this.flattenedCommands];
+    return [...this.flattenedCommands.values()];
   }
 
   /**
@@ -172,7 +176,10 @@ export class StandardCommandTable implements CommandTable {
       if (originalTable === this) {
         this.exportedCommands.add(currentTableEntry as CommandTableEntry);
       }
-      this.flattenedCommands.add(currentTableEntry as CommandTableEntry);
+      this.flattenedCommands.set(
+        command,
+        currentTableEntry as CommandTableEntry
+      );
     } else {
       if (currentTableEntry.subCommands === undefined) {
         currentTableEntry.subCommands = new Map();
@@ -240,5 +247,8 @@ export class StandardCommandTable implements CommandTable {
         [...designator] // this array gets mutated.
       );
     }
+  }
+  public isContainingCommand(command: CommandDescription): boolean {
+    return this.flattenedCommands.has(command);
   }
 }
