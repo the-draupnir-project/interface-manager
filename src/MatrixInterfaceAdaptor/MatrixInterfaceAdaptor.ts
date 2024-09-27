@@ -64,7 +64,11 @@ export interface MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
   ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>;
   describeRenderer<TCommandMeta extends CommandMeta>(
     commandDescription: CommandDescription<TCommandMeta>,
-    rendererDescription: DescribeMatrixRenderer<TCommandMeta["CommandResult"]>
+    rendererDescription: DescribeMatrixRenderer<
+      AdaptorContext,
+      MatrixEventContext,
+      TCommandMeta["CommandResult"]
+    >
   ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>;
   isDescribingRendererForCommand<
     TCommandDescription extends CommandDescription,
@@ -312,6 +316,8 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   public describeRenderer<TCommandDescription extends CommandDescription>(
     commandDescription: TCommandDescription,
     rendererDescription: DescribeMatrixRenderer<
+      AdaptorContext,
+      MatrixEventContext,
       ExtractCommandMeta<TCommandDescription>["CommandResult"]
     >
   ): MatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext> {
@@ -406,8 +412,18 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   }
 }
 
-export type DescribeMatrixRenderer<CommandResult> = Omit<
-  MatrixRendererDescription<CommandResult>,
+export type DescribeMatrixRenderer<
+  AdaptorContext = unknown,
+  MatrixEventContext = unknown,
+  CommandResult = unknown,
+  AdaptorArguments extends unknown[] = unknown[],
+> = Omit<
+  MatrixRendererDescription<
+    AdaptorContext,
+    MatrixEventContext,
+    CommandResult,
+    AdaptorArguments
+  >,
   "isAlwaysSupposedToUseDefaultRenderer"
 > & {
   isAlwaysSupposedToUseDefaultRenderer?: boolean;

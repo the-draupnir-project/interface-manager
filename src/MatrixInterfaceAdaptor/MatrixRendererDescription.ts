@@ -10,7 +10,12 @@
 import { Result } from "@gnuxie/typescript-result";
 import { DocumentNode } from "../DeadDocument";
 
-export interface MatrixRendererDescription<CommandResult = unknown> {
+export interface MatrixRendererDescription<
+  AdaptorContext = unknown,
+  MatrixEventContext = unknown,
+  CommandResult = unknown,
+  AdaptorArguments extends unknown[] = unknown[],
+> {
   /**
    * Render the result of a command invocation to DeadDocument.
    * The interface adaptor will then render this back to Matrix using an event.
@@ -33,12 +38,7 @@ export interface MatrixRendererDescription<CommandResult = unknown> {
    * @param commandResult
    * @param adaptorArguments
    */
-  arbritraryRenderer?<
-    AdaptorContext,
-    MatrixEventContext,
-    CommandResult,
-    AdaptorArguments extends unknown[],
-  >(
+  arbritraryRenderer?(
     context: AdaptorContext,
     eventContext: MatrixEventContext,
     commandResult: Result<CommandResult>,
