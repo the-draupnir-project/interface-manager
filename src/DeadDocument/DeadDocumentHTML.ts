@@ -71,6 +71,7 @@ HTML_RENDERER.registerRenderer<
     staticString("<h1>"),
     staticString("</h1>")
   )
+  .registerInnerNode(NodeTag.HorizontalRule, blank, staticString("<hr/>"))
   .registerInnerNode(
     NodeTag.InlineCode,
     staticString("<code>"),

@@ -86,6 +86,7 @@ MARKDOWN_RENDERER.registerRenderer<
     },
     staticString("\n\n")
   )
+  .registerInnerNode(NodeTag.HorizontalRule, blank, staticString("\n---\n"))
   .registerInnerNode(NodeTag.Emphasis, staticString("*"), staticString("*"))
   .registerInnerNode(NodeTag.InlineCode, staticString("`"), staticString("`"))
   .registerInnerNode(NodeTag.Paragraph, blank, staticString("\n\n"))

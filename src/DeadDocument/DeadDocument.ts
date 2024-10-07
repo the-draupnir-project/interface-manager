@@ -67,6 +67,7 @@ export enum NodeTag {
   Summary = "summary",
   Font = "font",
   Span = "span",
+  HorizontalRule = "hr",
 }
 
 /**
