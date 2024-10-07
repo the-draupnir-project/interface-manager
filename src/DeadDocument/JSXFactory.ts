@@ -62,6 +62,11 @@ export namespace DeadDocumentJSX {
       font: NodeProperties & { color?: string };
       fragment: NodeProperties;
       h1: NodeProperties;
+      h2: NodeProperties;
+      h3: NodeProperties;
+      h4: NodeProperties;
+      h5: NodeProperties;
+      h6: NodeProperties;
       hr: LeafNodeProperties;
       i: NodeProperties;
       li: NodeProperties;

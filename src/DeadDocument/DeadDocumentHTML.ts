@@ -71,6 +71,31 @@ HTML_RENDERER.registerRenderer<
     staticString("<h1>"),
     staticString("</h1>")
   )
+  .registerInnerNode(
+    NodeTag.HeadingTwo,
+    staticString("<h2>"),
+    staticString("</h2>")
+  )
+  .registerInnerNode(
+    NodeTag.HeadingThree,
+    staticString("<h3>"),
+    staticString("</h3>")
+  )
+  .registerInnerNode(
+    NodeTag.HeadingFour,
+    staticString("<h4>"),
+    staticString("</h4>")
+  )
+  .registerInnerNode(
+    NodeTag.HeadingFive,
+    staticString("<h5>"),
+    staticString("</h5>")
+  )
+  .registerInnerNode(
+    NodeTag.HeadingSix,
+    staticString("<h6>"),
+    staticString("</h6>")
+  )
   .registerInnerNode(NodeTag.HorizontalRule, blank, staticString("<hr/>"))
   .registerInnerNode(
     NodeTag.InlineCode,

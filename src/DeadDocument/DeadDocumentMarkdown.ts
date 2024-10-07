@@ -86,6 +86,41 @@ MARKDOWN_RENDERER.registerRenderer<
     },
     staticString("\n\n")
   )
+  .registerInnerNode(
+    NodeTag.HeadingTwo,
+    function (_fringeType, _node, context: TransactionalOutputContext) {
+      context.output.writeString("## ");
+    },
+    staticString("\n\n")
+  )
+  .registerInnerNode(
+    NodeTag.HeadingThree,
+    function (_fringeType, _node, context: TransactionalOutputContext) {
+      context.output.writeString("### ");
+    },
+    staticString("\n\n")
+  )
+  .registerInnerNode(
+    NodeTag.HeadingFour,
+    function (_fringeType, _node, context: TransactionalOutputContext) {
+      context.output.writeString("#### ");
+    },
+    staticString("\n\n")
+  )
+  .registerInnerNode(
+    NodeTag.HeadingFive,
+    function (_fringeType, _node, context: TransactionalOutputContext) {
+      context.output.writeString("##### ");
+    },
+    staticString("\n\n")
+  )
+  .registerInnerNode(
+    NodeTag.HeadingSix,
+    function (_fringeType, _node, context: TransactionalOutputContext) {
+      context.output.writeString("###### ");
+    },
+    staticString("\n\n")
+  )
   .registerInnerNode(NodeTag.HorizontalRule, blank, staticString("\n---\n"))
   .registerInnerNode(NodeTag.Emphasis, staticString("*"), staticString("*"))
   .registerInnerNode(NodeTag.InlineCode, staticString("`"), staticString("`"))
