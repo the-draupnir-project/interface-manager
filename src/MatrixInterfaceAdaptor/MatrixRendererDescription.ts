@@ -28,6 +28,8 @@ export interface MatrixRendererDescription<
    * Whether to always use the default renderer regardless of supporting renderers.
    * For example, Draupnir uses a renderer that adds tick and cross emoji to
    * commands depending on their result.
+   * If true, then the default renderer  will get called after the JSXRenderer, and after the noConfirmJSXRenderer.
+   * This is supposed to be true by default.
    */
   isAlwaysSupposedToUseDefaultRenderer: boolean;
   /**
@@ -44,4 +46,12 @@ export interface MatrixRendererDescription<
     commandResult: Result<CommandResult>,
     ...adaptorArguments: AdaptorArguments
   ): Promise<Result<void>>;
+
+  /**
+   * If there is a description for the confirmation keyword `--no-confirm`, then
+   * and `--no-confirm` is not present, then this renderer will be called.
+   */
+  confirmationPromptJSXRenderer?(
+    commandResult: Result<CommandResult>
+  ): Result<DocumentNode | undefined>;
 }

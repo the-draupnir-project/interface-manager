@@ -75,6 +75,8 @@ export enum NodeTag {
   HorizontalRule = "hr",
 }
 
+export const EmptyFragment = makeDocumentNode(NodeTag.Fragment);
+
 /**
  * This is an internal interface so we can provide
  * an implementation of `DocumentNode` in a way

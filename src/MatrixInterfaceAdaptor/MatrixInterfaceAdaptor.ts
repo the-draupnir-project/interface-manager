@@ -28,6 +28,7 @@ import {
   CommandInvokerCallbacks,
   StandardCommandInvoker,
 } from "../Adaptor";
+import { renderConfirmationPrompt } from "./DefaultRenderers";
 
 export type BasicInvocationInformation = {
   readonly commandSender: StringUserID;
@@ -141,6 +142,15 @@ export type MatrixInterfaceAdaptorCallbacks<
     AdaptorContext,
     MatrixEventContext
   >;
+  /**
+   * Render a confirmation prompt to matrix.
+   */
+  readonly matrixEventsFromConfirmationPrompt: (
+    adaptor: AdaptorContext,
+    event: MatrixEventContext,
+    command: CompleteCommand,
+    document: DocumentNode
+  ) => Promise<Result<void>>;
 };
 
 export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
@@ -186,7 +196,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
       command
     );
     return (await this.runRenderersOnCommandResult(
-      command.toPartialCommand(),
+      command,
       commandResult,
       renderer,
       adaptorContext,
@@ -207,7 +217,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
   }
 
   private async runRenderersOnCommandResult(
-    partialCommand: PartialCommand,
+    command: Command,
     commandResult: Result<unknown>,
     renderer: MatrixRendererDescription,
     adaptorContext: AdaptorContext,
@@ -218,13 +228,14 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
         renderer,
         adaptorContext,
         matrixEventContext,
-        partialCommand,
+        command,
         commandResult
       ),
       this.maybeRunJSXRenderer(
         renderer,
         adaptorContext,
         matrixEventContext,
+        command,
         commandResult
       ),
       this.maybeRunArbritraryRenderer(
@@ -239,7 +250,7 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
         this.callbacks.rendererFailedCB(
           adaptorContext,
           matrixEventContext,
-          partialCommand,
+          command,
           result.error
         );
       }
@@ -254,40 +265,62 @@ export class StandardMatrixInterfaceAdaptor<AdaptorContext, MatrixEventContext>
     command: Command,
     commandResult: Result<unknown>
   ): Promise<Result<void>> {
-    if (renderer.isAlwaysSupposedToUseDefaultRenderer) {
-      return await this.callbacks.defaultRenderer(
-        adaptorContext,
-        eventContext,
-        command,
-        commandResult
-      );
-    } else {
+    if (!renderer.isAlwaysSupposedToUseDefaultRenderer) {
       return Ok(undefined);
     }
+    return await this.callbacks.defaultRenderer(
+      adaptorContext,
+      eventContext,
+      command,
+      commandResult
+    );
   }
 
   private async maybeRunJSXRenderer(
     renderer: MatrixRendererDescription,
     adaptorContext: AdaptorContext,
     eventContext: MatrixEventContext,
+    command: Command,
     commandResult: Result<unknown>
   ): Promise<Result<void>> {
-    if (renderer.JSXRenderer) {
-      const document = renderer.JSXRenderer(commandResult);
-      if (isError(document)) {
-        return document;
+    if (
+      command.description.parametersDescription.keywords.keywordDescriptions[
+        "no-confirm"
+      ] !== undefined &&
+      !command.isPartial &&
+      !command.keywords.getKeywordValue<boolean>("no-confirm", false)
+    ) {
+      const finalDocument = renderer.confirmationPromptJSXRenderer
+        ? renderer.confirmationPromptJSXRenderer(commandResult)
+        : renderConfirmationPrompt(commandResult);
+      if (isError(finalDocument)) {
+        return finalDocument;
       }
-      if (document.ok === undefined) {
+      if (finalDocument.ok === undefined) {
         return Ok(undefined); // Renderer is telling us it doesn't want to render anything.
       }
-      return await this.callbacks.matrixEventsFromDeadDocument(
+      return await this.callbacks.matrixEventsFromConfirmationPrompt(
         adaptorContext,
         eventContext,
-        document.ok
+        command,
+        finalDocument.ok
       );
-    } else {
+    }
+    if (!renderer.JSXRenderer) {
       return Ok(undefined);
     }
+    const document = renderer.JSXRenderer(commandResult);
+    if (isError(document)) {
+      return document;
+    }
+    if (document.ok === undefined) {
+      return Ok(undefined); // Renderer is telling us it doesn't want to render anything.
+    }
+    return await this.callbacks.matrixEventsFromDeadDocument(
+      adaptorContext,
+      eventContext,
+      document.ok
+    );
   }
 
   private async maybeRunArbritraryRenderer(
