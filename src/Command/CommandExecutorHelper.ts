@@ -17,6 +17,7 @@ import { StandardPresentationArgumentStream } from "./PresentationStream";
 import { Presentation } from "./Presentation";
 import { KeywordPresentationType } from "../TextReader";
 import { Keyword } from "./Keyword";
+import { CommandTable } from "./CommandTable";
 
 export type CommandExecutorHelperOptions<
   TInvocationInformation,
@@ -87,6 +88,7 @@ export const CommandExecutorHelper = Object.freeze({
     TRestArgumentObjectType,
     TKeywordsMeta extends KeywordsMeta,
   >(
+    commandTable: CommandTable,
     command: CommandDescription<
       CommandMeta<
         TCommandContext,
@@ -137,6 +139,7 @@ export const CommandExecutorHelper = Object.freeze({
         ...flatKeywords,
         ...(options.rest ?? []),
       ]),
+      commandTable,
     } satisfies TPartialCommand;
     const parseResult = commandInvoker.parseCommand(
       options.info,

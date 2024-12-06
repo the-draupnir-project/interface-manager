@@ -98,6 +98,7 @@ export class StandardCommandDispatcher<BasicInvocationInformation>
     const partialCommand = makePartialCommand(
       stream,
       commandToUse,
+      this.commandTable,
       normalisedDesignator
     );
     return Ok(partialCommand);

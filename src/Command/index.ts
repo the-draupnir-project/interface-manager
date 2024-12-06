@@ -17,5 +17,6 @@ export * from "./ParseErrors";
 export * from "./Presentation";
 export * from "./PresentationSchema";
 export * from "./PresentationStream";
+export * from "./PresentationTypeTranslator";
 export * from "./PromptForAccept";
 export * from "./RestParameterDescription";

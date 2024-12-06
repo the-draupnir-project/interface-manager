@@ -14,11 +14,16 @@
 
 import { StringPresentationType } from "../TextReader";
 import { CommandDescription } from "./CommandDescription";
-import { Presentation } from "./Presentation";
+import {
+  Presentation,
+  PresentationType,
+  PresentationTypeWithoutWrap,
+} from "./Presentation";
 import {
   PresentationArgumentStream,
   StandardPresentationArgumentStream,
 } from "./PresentationStream";
+import { PresentationTypeTranslator } from "./PresentationTypeTranslator";
 
 export type BaseCommandTableEntry =
   | EmptyCommandTableEntry
@@ -81,6 +86,13 @@ export interface CommandTable {
    */
   importTable(table: CommandTable, baseDesignator: string[]): void;
   isContainingCommand(command: CommandDescription): boolean;
+  internPresentationTypeTranslator(
+    translator: PresentationTypeTranslator
+  ): CommandTable;
+  findPresentationTypeTranslator(
+    toType: PresentationTypeWithoutWrap,
+    fromType: PresentationTypeWithoutWrap
+  ): PresentationTypeTranslator | undefined;
 }
 
 export class StandardCommandTable implements CommandTable {
@@ -93,6 +105,7 @@ export class StandardCommandTable implements CommandTable {
     designator: [],
     sourceTable: this,
   };
+  private readonly translators = new Map<string, PresentationTypeTranslator>();
   /** Imported tables are tables that "add commands" to this table. They are not sub commands. */
   private readonly importedTables = new Map<CommandTable, CommandTableImport>();
 
@@ -250,5 +263,26 @@ export class StandardCommandTable implements CommandTable {
   }
   public isContainingCommand(command: CommandDescription): boolean {
     return this.flattenedCommands.has(command);
+  }
+  private keyFromTranslator(translator: PresentationTypeTranslator): string {
+    return translator.toType.name + "From" + translator.fromType.name; // cheap but no one will ever find out.
+  }
+  public internPresentationTypeTranslator(
+    translator: PresentationTypeTranslator
+  ): CommandTable {
+    const key = this.keyFromTranslator(translator);
+    if (this.translators.has(key)) {
+      throw new TypeError(
+        `There is already a translator from ${translator.toType.name} to ${translator.fromType.name}`
+      );
+    }
+    this.translators.set(key, translator);
+    return this;
+  }
+  public findPresentationTypeTranslator(
+    toType: PresentationType,
+    fromType: PresentationType
+  ): PresentationTypeTranslator | undefined {
+    return this.translators.get(toType.name + "From" + fromType.name);
   }
 }

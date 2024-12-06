@@ -22,7 +22,7 @@ import { PartialCommand } from "./Command";
 import {
   PresentationSchema,
   PresentationSchemaType,
-  checkPresentationSchema,
+  acceptPresentation,
   printPresentationSchema,
 } from "./PresentationSchema";
 
@@ -104,11 +104,12 @@ export class StandardRestDescription<ObjectType = unknown>
       }
       const nextItem = stream.peekItem(undefined);
       if (nextItem !== undefined) {
-        const validationResult = checkPresentationSchema(
+        const acceptedPresentation = acceptPresentation(
           this.acceptor,
+          partialCommand.commandTable,
           nextItem
         );
-        if (!validationResult) {
+        if (acceptedPresentation === undefined) {
           return ArgumentParseError.Result(
             `Was expecting a match for the presentation type: ${printPresentationSchema(this.acceptor)} but got ${TextPresentationRenderer.render(nextItem)}.`,
             {
@@ -117,7 +118,7 @@ export class StandardRestDescription<ObjectType = unknown>
             }
           );
         }
-        items.push(nextItem as Presentation<ObjectType>);
+        items.push(acceptedPresentation);
         stream.readItem(); // dispose of keyword's associated value from the stream.
       }
     }
