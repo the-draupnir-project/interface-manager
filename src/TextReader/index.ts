@@ -7,3 +7,4 @@ export * from "./StandardCommandDispatcher";
 export * from "./TextCommandReader";
 export * from "./TextPresentationRenderer";
 export * from "./TextPresentationTypes";
+export * from "./TextTranslators";
