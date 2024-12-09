@@ -11,6 +11,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2024-12-09
+
+### Added
+
+- Numbers will now be parsed by the `TextCommandReader` as a new
+  number presentaiton type.
+
+- `PresentationTypeTranslators` now exist so that you can allow
+  presentation types to be translated between each other.
+
+- Several standard presentation type translators have been created
+  that target the `StringPresentationType`. This is because the
+  command reader parses types such as matrix user id's into
+  specialized ones, and this can mess with commands that are accepting
+  a string. For example, a reason for a ban.
+
 ## [2.6.0] - 2024-10-11
 
 ### Added
