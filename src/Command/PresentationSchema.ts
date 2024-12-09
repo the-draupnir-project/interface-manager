@@ -12,6 +12,7 @@ import {
   Presentation,
   PresentationTypeWithoutWrap,
 } from "./Presentation";
+import { CommandTable } from "./CommandTable";
 
 export enum PresentationSchemaType {
   Single = "Single",
@@ -95,6 +96,42 @@ export function checkPresentationSchema<ObjectType>(
     case PresentationSchemaType.Top:
       return true;
   }
+}
+
+export function acceptPresentation<ObjectType>(
+  schema: PresentationSchema<ObjectType>,
+  commandTable: CommandTable,
+  presentation: Presentation
+): Presentation<ObjectType> | undefined {
+  if (checkPresentationSchema<ObjectType>(schema, presentation)) {
+    return presentation;
+  } else if (schema.schemaType === PresentationSchemaType.Single) {
+    const translator = commandTable.findPresentationTypeTranslator(
+      schema.presentationType,
+      presentation.presentationType
+    );
+    if (translator) {
+      return translator.translate(presentation) as Presentation<ObjectType>;
+    } else {
+      return undefined;
+    }
+  } else if (schema.schemaType === PresentationSchemaType.Union) {
+    for (const variant of schema.variants) {
+      const result = acceptPresentation(
+        {
+          schemaType: PresentationSchemaType.Single,
+          presentationType: variant,
+        },
+        commandTable,
+        presentation
+      );
+      if (result !== undefined) {
+        return result;
+      }
+    }
+    return undefined;
+  }
+  throw new TypeError(`The code is wrong`);
 }
 
 export function printPresentationSchema(schema: PresentationSchema): string {

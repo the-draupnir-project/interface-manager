@@ -21,7 +21,7 @@ import {
   PresentationSchemaType,
   SinglePresentationSchema,
   TopPresentationSchema,
-  checkPresentationSchema,
+  acceptPresentation,
   printPresentationSchema,
 } from "./PresentationSchema";
 import {
@@ -89,8 +89,14 @@ export class KeywordParser<TKeywordsMeta extends KeywordsMeta = KeywordsMeta> {
     const stream = partialCommand.stream;
     const nextItem = stream.peekItem();
     if (nextItem !== undefined && !(nextItem.object instanceof Keyword)) {
-      if (checkPresentationSchema(keyword.acceptor, nextItem)) {
-        return Ok(stream.readItem());
+      const acceptedPresentation = acceptPresentation(
+        keyword.acceptor,
+        partialCommand.commandTable,
+        nextItem
+      );
+      if (acceptedPresentation !== undefined) {
+        stream.readItem(); // consume the presentation from the stream.
+        return Ok(acceptedPresentation);
       } else {
         return ArgumentParseError.Result(
           `Was expecting a match for the presentation type: ${printPresentationSchema(keyword.acceptor)} but got ${TextPresentationRenderer.render(nextItem)}.`,

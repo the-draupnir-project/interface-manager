@@ -9,6 +9,7 @@
 
 import { CommandDescription } from "./CommandDescription";
 import { CommandMeta } from "./CommandMeta";
+import { CommandTable } from "./CommandTable";
 import { ParsedKeywords } from "./ParsedKeywords";
 import { PresentationArgumentStream } from "./PresentationStream";
 
@@ -16,6 +17,7 @@ type CommandBase<TCommandMeta extends CommandMeta = CommandMeta> = {
   readonly description: CommandDescription<TCommandMeta>;
   // The normalised designator that was used to invoke the command.
   readonly designator: string[];
+  readonly commandTable: CommandTable;
 };
 
 export type Command<TCommandMeta extends CommandMeta = CommandMeta> =
@@ -52,6 +54,7 @@ export function makePartialCommand<
 >(
   stream: PresentationArgumentStream,
   commandDescription: CommandDescription<TCommandMeta>,
+  commandTable: CommandTable,
   designator: string[]
 ): PartialCommand<TCommandMeta> {
   return {
@@ -59,5 +62,6 @@ export function makePartialCommand<
     isPartial: true,
     description: commandDescription,
     designator,
+    commandTable,
   };
 }

@@ -83,3 +83,9 @@ it("Can parse userID's", function () {
   const user = readItems.at(0)?.object as MatrixUserID;
   expect(user.localpart).toBe("spam");
 });
+
+it("It can read numbers", function () {
+  const command = "123";
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.object).toBe(123);
+});

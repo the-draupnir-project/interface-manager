@@ -27,11 +27,11 @@ import {
 import { CompleteCommand, PartialCommand } from "./Command";
 import { ArgumentParseError, PromptRequiredError } from "./ParseErrors";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
-import { PresentationTypeWithoutWrap } from "./Presentation";
+import { Presentation, PresentationTypeWithoutWrap } from "./Presentation";
 import {
   PresentationSchema,
   PresentationSchemaType,
-  checkPresentationSchema,
+  acceptPresentation,
   printPresentationSchema,
 } from "./PresentationSchema";
 import { ObjectTypeFromAcceptor } from "./PresentationSchema";
@@ -80,7 +80,7 @@ export class StandardCommandParametersDescription<
   public parse(partialCommand: PartialCommand): Result<CompleteCommand> {
     const keywordsParser = this.keywords.getParser();
     const stream = partialCommand.stream;
-    const immediateArgumentsStartPosition = stream.getPosition();
+    const immediateArguments: Presentation[] = [];
     for (const parameter of this.descriptions) {
       // it eats any keywords at any point in the stream
       // as they can appear at any point technically.
@@ -105,7 +105,12 @@ export class StandardCommandParametersDescription<
           );
         }
       }
-      if (!checkPresentationSchema(parameter.acceptor, nextItem)) {
+      const acceptedPresentation = acceptPresentation(
+        parameter.acceptor,
+        partialCommand.commandTable,
+        nextItem
+      );
+      if (acceptedPresentation === undefined) {
         return ArgumentParseError.Result(
           `Was expecting a match for the presentation type: ${printPresentationSchema(parameter.acceptor)} but got ${TextPresentationRenderer.render(nextItem)}.`,
           {
@@ -115,20 +120,12 @@ export class StandardCommandParametersDescription<
         );
       }
       stream.readItem(); // disopose of argument.
+      immediateArguments.push(acceptedPresentation);
     }
     const restResult = keywordsParser.parseRest(partialCommand, this.rest);
     if (isError(restResult)) {
       return restResult;
     }
-    const immediateArguments =
-      restResult.ok === undefined ||
-      restResult.ok.length === 0 ||
-      restResult.ok[0] === undefined
-        ? stream.source.slice(immediateArgumentsStartPosition)
-        : stream.source.slice(
-            immediateArgumentsStartPosition,
-            stream.source.indexOf(restResult.ok[0])
-          );
     return Ok({
       description: partialCommand.description,
       immediateArguments: immediateArguments.map((p) => p.object),
@@ -136,12 +133,14 @@ export class StandardCommandParametersDescription<
       rest: restResult.ok?.map((p) => p.object) ?? [],
       designator: partialCommand.designator,
       isPartial: false,
+      commandTable: partialCommand.commandTable,
       toPartialCommand() {
         return {
           description: partialCommand.description,
           stream: stream,
           isPartial: true,
           designator: partialCommand.designator,
+          commandTable: partialCommand.commandTable,
         };
       },
     });

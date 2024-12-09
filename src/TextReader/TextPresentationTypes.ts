@@ -49,6 +49,26 @@ TextPresentationRenderer.registerPresentationRenderer<string>(
   }
 );
 
+export const NumberPresentationType = definePresentationType({
+  name: "number",
+  validator: function (value): value is number {
+    return typeof value === "number";
+  },
+  wrap(number: number): Presentation<number> {
+    return Object.freeze({
+      object: number,
+      presentationType: NumberPresentationType,
+    });
+  },
+});
+
+TextPresentationRenderer.registerPresentationRenderer<number>(
+  NumberPresentationType,
+  function (presentation) {
+    return presentation.object.toString();
+  }
+);
+
 export const KeywordPresentationType = definePresentationType({
   name: "Keyword",
   validator: function (value): value is Keyword {

@@ -28,6 +28,7 @@ import {
   MatrixRoomAliasPresentationType,
   MatrixRoomIDPresentationType,
   MatrixUserIDPresentationType,
+  NumberPresentationType,
   StringPresentationType,
 } from "./TextPresentationTypes";
 
@@ -279,4 +280,8 @@ definePostReadReplace(/^https:\/\/matrix\.to/, (input) => {
       }
     }
   }
+});
+
+definePostReadReplace(/^[0-9]+$/, (input) => {
+  return NumberPresentationType.wrap(Number.parseInt(input));
 });

@@ -136,6 +136,7 @@ it("Can define keyword arguments.", async function () {
         readCommand(`--dry-run --room !foo:example.com`)
       ),
       KeywordsCommandTest,
+      new StandardCommandTable(Symbol("KeywordsCommandTest")),
       []
     )
   );
