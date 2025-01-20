@@ -20,18 +20,16 @@ import {
 import { CommandDispatcher, CommandDispatcherCallbacks } from "../Adaptor";
 import { Err, Ok, Result, ResultError } from "@gnuxie/typescript-result";
 import { readCommand } from "./TextCommandReader";
-import { StringPresentationType } from "./TextPresentationTypes";
 
 export class StandardCommandDispatcher<BasicInvocationInformation>
   implements CommandDispatcher<BasicInvocationInformation>
 {
-  private readonly callbacks: CommandDispatcherCallbacks<BasicInvocationInformation>;
   public constructor(
     private readonly commandTable: CommandTable,
     private readonly helpCommand: CommandDescription,
-    callbacks?: CommandDispatcherCallbacks<BasicInvocationInformation>
+    private readonly callbacks: CommandDispatcherCallbacks<BasicInvocationInformation>
   ) {
-    this.callbacks = callbacks ?? {};
+    // nothing to do.
   }
   parsePartialCommandFromBody(
     commandInformation: BasicInvocationInformation,
@@ -39,27 +37,18 @@ export class StandardCommandDispatcher<BasicInvocationInformation>
   ): Result<PartialCommand> {
     // The try is required because readCommand does not return `Result`s and throws errors.
     try {
-      const readResult = readCommand(body);
+      const normalisedCommandBody = this.callbacks.commandNormaliser(body);
+      if (normalisedCommandBody === undefined) {
+        return ResultError.Result("No command found in the body.");
+      }
+      const readResult = readCommand(normalisedCommandBody);
       const firstItem = readResult.at(0);
       if (firstItem === undefined || typeof firstItem.object !== "string") {
         return ResultError.Result("No command found in the body.");
       }
-      const prefix =
-        this.callbacks.prefixExtractor === undefined
-          ? firstItem.object
-          : this.callbacks.prefixExtractor(firstItem.object);
-      if (prefix === undefined) {
-        return ResultError.Result(
-          "Could not extract a prefix from the body, the body does not contain a command."
-        );
-      }
-      const normalisedCommand = [
-        StringPresentationType.wrap(prefix),
-        ...readResult.slice(1),
-      ];
       return this.parsePartialCommandFromStream(
         commandInformation,
-        new StandardPresentationArgumentStream(normalisedCommand)
+        new StandardPresentationArgumentStream(readResult)
       );
     } catch (error: unknown) {
       if (error instanceof Error) {

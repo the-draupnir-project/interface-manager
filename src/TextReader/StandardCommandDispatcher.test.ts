@@ -28,7 +28,9 @@ const HelpCommand = describeCommand({
 it("Can parse a partial command", function () {
   const testTable = new StandardCommandTable(Symbol("TestTable"));
   testTable.internCommand(HelpCommand, ["testbot", "help"]);
-  const dispatcher = new StandardCommandDispatcher(testTable, HelpCommand);
+  const dispatcher = new StandardCommandDispatcher(testTable, HelpCommand, {
+    commandNormaliser: (body) => body,
+  });
   const partialCommand = dispatcher.parsePartialCommandFromBody(
     { commandSender: "test" },
     "testbot help unban"

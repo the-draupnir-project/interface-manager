@@ -42,7 +42,7 @@ const JSDispatcher = new StandardJSInterfaceCommandDispatcher(
   testTable,
   ReasonAcceptingCommand as CommandDescription,
   undefined,
-  {},
+  { commandNormaliser: (body) => body },
   new StandardAdaptorContextToCommandContextTranslator()
 );
 

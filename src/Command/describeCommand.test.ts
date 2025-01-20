@@ -190,7 +190,8 @@ it("end to end test a command that parses mxids", async function () {
   const dispatcher = new StandardJSInterfaceCommandDispatcher(
     testTable,
     helpCommand,
-    undefined
+    undefined,
+    { commandNormaliser: (body) => body }
   );
   const result = await dispatcher.invokeCommandFromBody(
     { commandSender: "@test:localhost" as StringUserID },

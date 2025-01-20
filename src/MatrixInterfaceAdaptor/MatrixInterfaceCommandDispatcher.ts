@@ -47,7 +47,7 @@ export class StandardMatrixInterfaceCommandDispatcher<
     private readonly commandTable: CommandTable,
     private readonly helpCommand: CommandDescription,
     private readonly invocationInformationFromEventContext: InvocationInformationFromEventContext<MatrixEventContext>,
-    callbacks?: CommandDispatcherCallbacks<BasicInvocationInformation>,
+    callbacks: CommandDispatcherCallbacks<BasicInvocationInformation>,
     /**
      * Sometimes it is useful to check whether all commands in a table have a renderer, and all renderers have a command in the table.
      * Becuase people can forget to import them properly. This can be disabled if table imports are dynamic.
@@ -58,7 +58,7 @@ export class StandardMatrixInterfaceCommandDispatcher<
       new StandardCommandDispatcher<BasicInvocationInformation>(
         this.commandTable,
         this.helpCommand,
-        callbacks ?? {}
+        callbacks
       );
     if (verifyOptions?.verifyRenderers ?? true) {
       this.verifyAdaptorRenderingAllCommands();

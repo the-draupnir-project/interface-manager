@@ -23,17 +23,15 @@ import { StandardCommandDispatcher } from "./StandardCommandDispatcher";
 export class StandardJSInterfaceCommandDispatcher<AdaptorContext>
   implements JSInterfaceCommandDispatcher<BasicInvocationInformation>
 {
-  private readonly callbacks: CommandDispatcherCallbacks<BasicInvocationInformation>;
   private readonly commandInvoker: CommandInvoker<BasicInvocationInformation>;
   private readonly commandDispatcher: CommandDispatcher<BasicInvocationInformation>;
   public constructor(
     private readonly commandTable: CommandTable,
     private readonly helpCommand: CommandDescription,
     private readonly adaptorContext: AdaptorContext,
-    callbacks?: CommandDispatcherCallbacks<BasicInvocationInformation>,
+    private readonly callbacks: CommandDispatcherCallbacks<BasicInvocationInformation>,
     private readonly contextTranslator?: AdaptorContextToCommandContextTranslator<AdaptorContext>
   ) {
-    this.callbacks = callbacks ?? {};
     this.commandInvoker =
       new StandardCommandInvoker<BasicInvocationInformation>(this.callbacks);
     this.commandDispatcher =
