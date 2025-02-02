@@ -97,7 +97,12 @@ function maybeReadPrefixes(
     );
   }
   if (usedSymbolPrefix && isAllowedOnlySymbolPrefixes) {
-    return normalisedPrefix + " " + additionalPrefixTarget;
+    return (
+      normalisedPrefix +
+      " " +
+      additionalPrefixTarget +
+      (stream.source as string).slice(stream.getPosition())
+    );
   }
   return undefined;
 }

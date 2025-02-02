@@ -47,7 +47,14 @@ test("command normaliser that allows symbol prefixes", function () {
     }
   );
   expect(normaliser(".draupnir ban")).toBe("draupnir ban");
-  expect(normaliser(".ban")).toBe("draupnir ban");
-  expect(normaliser(".mjolnir ban")).toBe("draupnir ban");
+  expect(normaliser(".ban @foo:localhost:9999 coc spam")).toBe(
+    "draupnir ban @foo:localhost:9999 coc spam"
+  );
+  expect(normaliser(".mjolnir ban @foo:localhost:9999 coc spam")).toBe(
+    "draupnir ban @foo:localhost:9999 coc spam"
+  );
   expect(normaliser("Draupnir: ban")).toBe("draupnir ban");
+  expect(normaliser(".list create coc coc")).toBe(
+    "draupnir list create coc coc"
+  );
 });
