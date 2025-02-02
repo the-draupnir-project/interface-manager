@@ -11,6 +11,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.1] - 2025-02-02
+
+### Fixed
+
+- Fixed a bug in the command dispatcher normaliser that would mean
+  only the first argument or designator to any command would be
+  included in the normalised
+  command. https://github.com/the-draupnir-project/Draupnir/issues/707.
+
 ## [4.0.0] - 2025-01-20
 
 ### Changed
