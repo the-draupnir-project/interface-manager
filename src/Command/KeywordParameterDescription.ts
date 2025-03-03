@@ -7,7 +7,7 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { Result, Ok, isError, ResultError } from "@gnuxie/typescript-result";
+import { Result, Ok, isError } from "@gnuxie/typescript-result";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
 import { Keyword } from "./Keyword";
 import { ParameterDescription } from "./ParameterDescription";
@@ -168,8 +168,16 @@ export class KeywordParser<TKeywordsMeta extends KeywordsMeta = KeywordsMeta> {
         return result;
       }
       if (stream.peekItem() !== undefined) {
-        return ResultError.Result(
-          `There is an unexpected non-keyword argument ${JSON.stringify(stream.peekItem())}`
+        const textRendering = (() => {
+          try {
+            return TextPresentationRenderer.render(stream.peekItem());
+          } catch (e) {
+            return `${JSON.stringify(stream.peekItem()?.object)} (fallback representation)`;
+          }
+        })();
+        return UnexpectedArgumentError.Result(
+          `There is an unexpected non-keyword argument: ${textRendering}`,
+          { partialCommand }
         );
       } else {
         return Ok(undefined);
