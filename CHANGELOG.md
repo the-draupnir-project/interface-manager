@@ -11,6 +11,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2] 0 2025-03-03
+
+### Fixed
+
+- Return an `UnexpectedArgumentError` instead of a `ResultError` when
+  an unexpected additional argument is provided to a command.
+
 ## [4.0.1] - 2025-02-02
 
 ### Fixed
@@ -26,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The signature of the `CommandDispatcher` `prefixExtractor` callback
   has been changed so that it is possible to transform the entire command
-  body with a `commandNormaliser`.  This was changed primarily to
+  body with a `commandNormaliser`. This was changed primarily to
   fix https://github.com/the-draupnir-project/Draupnir/issues/678.
 
 ### Added
@@ -70,7 +77,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Improved inference on `MatrixInterfaceAdaptor['describeRenderer']`.
-
 
 ## [2.4.0] - 2024-09-20
 
