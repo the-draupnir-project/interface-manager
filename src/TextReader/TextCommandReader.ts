@@ -23,6 +23,7 @@ import {
 import { Presentation } from "../Command/Presentation";
 import { Keyword } from "../Command/Keyword";
 import {
+  BooleanPresentationType,
   KeywordPresentationType,
   MatrixEventReferencePresentationType,
   MatrixRoomAliasPresentationType,
@@ -284,4 +285,8 @@ definePostReadReplace(/^https:\/\/matrix\.to/, (input) => {
 
 definePostReadReplace(/^[0-9]+$/, (input) => {
   return NumberPresentationType.wrap(Number.parseInt(input));
+});
+
+definePostReadReplace(/^true|false$/, (input) => {
+  return BooleanPresentationType.wrap(input === "true");
 });

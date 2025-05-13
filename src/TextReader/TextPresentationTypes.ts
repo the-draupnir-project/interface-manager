@@ -69,6 +69,26 @@ TextPresentationRenderer.registerPresentationRenderer<number>(
   }
 );
 
+export const BooleanPresentationType = definePresentationType({
+  name: "boolean",
+  validator: function (value): value is boolean {
+    return typeof value === "boolean";
+  },
+  wrap(boolean: boolean): Presentation<boolean> {
+    return Object.freeze({
+      object: boolean,
+      presentationType: BooleanPresentationType,
+    });
+  },
+});
+
+TextPresentationRenderer.registerPresentationRenderer<boolean>(
+  BooleanPresentationType,
+  function (presentation) {
+    return presentation.object ? "true" : "false";
+  }
+);
+
 export const KeywordPresentationType = definePresentationType({
   name: "Keyword",
   validator: function (value): value is Keyword {

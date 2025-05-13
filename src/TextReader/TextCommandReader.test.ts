@@ -13,7 +13,10 @@ import {
   MatrixUserID,
 } from "@the-draupnir-project/matrix-basic-types";
 import { readCommand } from "./TextCommandReader";
-import { StringPresentationType } from "./TextPresentationTypes";
+import {
+  BooleanPresentationType,
+  StringPresentationType,
+} from "./TextPresentationTypes";
 import { Keyword } from "../Command/Keyword";
 
 test("CommandReader can read strings", function () {
@@ -88,4 +91,12 @@ it("It can read numbers", function () {
   const command = "123";
   const readItems = readCommand(command);
   expect(readItems.at(0)?.object).toBe(123);
+});
+
+it("It can read booleans", function () {
+  const command = "true false";
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.presentationType).toBe(BooleanPresentationType);
+  expect(readItems.at(0)?.object).toBe(true);
+  expect(readItems.at(1)?.object).toBe(false);
 });
