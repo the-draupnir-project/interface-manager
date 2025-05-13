@@ -234,6 +234,41 @@ defineReadItem(
   }
 );
 
+function maybeReadInteger(
+  stream: StringStream
+): Presentation<number> | undefined {
+  const isNegative = stream.peekChar() === "-";
+  if (isNegative) {
+    stream.readChar();
+  }
+  let word = "";
+  while (stream.peekChar() !== undefined && /^[0-9]$/.test(stream.peekChar())) {
+    const char = stream.readChar();
+    if (char === undefined) {
+      throw new TypeError(
+        "Shouldn't be possible cos we're checking if it's undefined in the loop clause"
+      );
+    }
+    word += char;
+  }
+  const number = isNegative ? -Number.parseInt(word) : Number.parseInt(word);
+  return word.length > 0 ? NumberPresentationType.wrap(number) : undefined;
+}
+
+function readKeywordOrNegativeInteger(
+  stream: StringStream
+): Presentation<Keyword> | Presentation<number> {
+  const maybeInteger = stream.savingPositionIf({
+    predicate: (t) => t === undefined,
+    body: (stream) => maybeReadInteger(stream as StringStream),
+  });
+  if (maybeInteger !== undefined) {
+    return maybeInteger as Presentation<number>;
+  } else {
+    return readKeyword(stream);
+  }
+}
+
 /**
  * Read a keyword frorm the stream, throws away all of the prefixing `[:-]` characters
  * when producing the keyword designator.
@@ -250,8 +285,8 @@ function readKeyword(stream: StringStream): Presentation<Keyword> {
   return KeywordPresentationType.wrap(new Keyword(word.join("")));
 }
 
-defineReadItem("-", readKeyword);
-defineReadItem(":", readKeyword);
+defineReadItem("-", readKeywordOrNegativeInteger);
+defineReadItem(":", readKeywordOrNegativeInteger);
 
 definePostReadReplace(/^https:\/\/matrix\.to/, (input) => {
   const parseResult = Permalinks.parseUrl(input);

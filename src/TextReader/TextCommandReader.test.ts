@@ -100,3 +100,9 @@ it("It can read booleans", function () {
   expect(readItems.at(0)?.object).toBe(true);
   expect(readItems.at(1)?.object).toBe(false);
 });
+
+it("It can read negative integers", function () {
+  const command = "-123";
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.object).toBe(-123);
+});
