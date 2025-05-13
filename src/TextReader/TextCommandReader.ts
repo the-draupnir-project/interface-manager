@@ -66,6 +66,12 @@ function eatWhitespace(stream: StringStream): void {
   readUntil(/\S/, stream, []);
 }
 
+function readWord(stream: StringStream): string {
+  const word: string[] = [stream.readChar()];
+  readUntil(/\s/, stream, word);
+  return word.join("");
+}
+
 /**
  * Read a single "Item".
  * @param stream Stream to read the item from, must be at the beginning of a word not be EOF or whitespace.
@@ -89,9 +95,7 @@ function readItem(stream: StringStream): Presentation | string {
     return macro(stream);
   } else {
     // Then read a normal word.
-    const word: string[] = [stream.readChar()];
-    readUntil(/\s/, stream, word);
-    return word.join("");
+    return readWord(stream);
   }
 }
 
@@ -287,6 +291,35 @@ function readKeyword(stream: StringStream): Presentation<Keyword> {
 
 defineReadItem("-", readKeywordOrNegativeInteger);
 defineReadItem(":", readKeywordOrNegativeInteger);
+
+function maybeReadQuotedString(stream: StringStream): string | undefined {
+  if (stream.peekChar() !== '"') {
+    return undefined;
+  }
+  stream.readChar();
+  const word: string[] = [];
+  readUntil(/"/, stream, word);
+  if (stream.peekChar() === '"') {
+    stream.readChar();
+    return word.join("");
+  } else {
+    return undefined;
+  }
+}
+
+function readString(stream: StringStream): string {
+  const quotedString = stream.savingPositionIf({
+    predicate: (t) => t === undefined,
+    body: (stream) => maybeReadQuotedString(stream as StringStream),
+  });
+  if (quotedString !== undefined) {
+    return quotedString as string;
+  } else {
+    return readWord(stream);
+  }
+}
+
+defineReadItem('"', readString);
 
 definePostReadReplace(/^https:\/\/matrix\.to/, (input) => {
   const parseResult = Permalinks.parseUrl(input);

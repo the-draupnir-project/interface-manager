@@ -106,3 +106,16 @@ it("It can read negative integers", function () {
   const readItems = readCommand(command);
   expect(readItems.at(0)?.object).toBe(-123);
 });
+
+it("It can read quoted strings", function () {
+  const command = '"hello world"';
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.object).toBe("hello world");
+});
+
+it("It can read unbalanced quoteds strings", function () {
+  const command = '"unbalanced vronut';
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.object).toBe('"unbalanced');
+  expect(readItems.at(1)?.object).toBe("vronut");
+});
