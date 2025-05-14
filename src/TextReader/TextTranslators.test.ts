@@ -13,6 +13,7 @@ import { StandardCommandTable } from "../Command/CommandTable";
 import { StringPresentationType } from "./TextPresentationTypes";
 import { CommandDescription } from "../Command";
 import {
+  StringfromBooleanTranslator,
   StringFromMatrixRoomAliasTranslator,
   StringFromMatrixUserIDTranslator,
   StringFromNumberTranslator,
@@ -30,7 +31,7 @@ const ReasonAcceptingCommand = describeCommand({
   },
   async executor(_context, _info, _keywords, rest) {
     expect(rest.join(" ")).toBe(
-      "hello 1234 @foo:localhost:9999 https://matrix.to/#/%23bar%3Alocalhost%3A9999"
+      "hello 1234 @foo:localhost:9999 https://matrix.to/#/%23bar%3Alocalhost%3A9999 false"
     );
     return Ok("Accepts a reason for a ban or something.");
   },
@@ -54,9 +55,10 @@ it("Can parse a partial command", async function () {
   testTable
     .internPresentationTypeTranslator(StringFromNumberTranslator)
     .internPresentationTypeTranslator(StringFromMatrixUserIDTranslator)
-    .internPresentationTypeTranslator(StringFromMatrixRoomAliasTranslator);
+    .internPresentationTypeTranslator(StringFromMatrixRoomAliasTranslator)
+    .internPresentationTypeTranslator(StringfromBooleanTranslator);
   const commandBody =
-    "testbot reason hello 1234 @foo:localhost:9999 https://matrix.to/#/#bar:localhost:9999";
+    "testbot reason hello 1234 @foo:localhost:9999 https://matrix.to/#/#bar:localhost:9999 false";
   const result = await JSDispatcher.invokeCommandFromBody(
     { commandSender: "@foo:localhost:9999" as StringUserID },
     commandBody

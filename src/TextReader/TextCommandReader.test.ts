@@ -13,7 +13,10 @@ import {
   MatrixUserID,
 } from "@the-draupnir-project/matrix-basic-types";
 import { readCommand } from "./TextCommandReader";
-import { StringPresentationType } from "./TextPresentationTypes";
+import {
+  BooleanPresentationType,
+  StringPresentationType,
+} from "./TextPresentationTypes";
 import { Keyword } from "../Command/Keyword";
 
 test("CommandReader can read strings", function () {
@@ -88,4 +91,44 @@ it("It can read numbers", function () {
   const command = "123";
   const readItems = readCommand(command);
   expect(readItems.at(0)?.object).toBe(123);
+});
+
+it("It can read booleans", function () {
+  const command = "true false";
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.presentationType).toBe(BooleanPresentationType);
+  expect(readItems.at(0)?.object).toBe(true);
+  expect(readItems.at(1)?.object).toBe(false);
+});
+
+it("It can read negative integers", function () {
+  const command = "-123";
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.object).toBe(-123);
+});
+
+it("It can read quoted strings", function () {
+  const command = '"hello world"';
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.object).toBe("hello world");
+});
+
+it("It can read unbalanced quoteds strings", function () {
+  const command = '"unbalanced vronut';
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.object).toBe('"unbalanced');
+  expect(readItems.at(1)?.object).toBe("vronut");
+});
+
+it("It can read escaped quotes meow", function () {
+  const commoand = '"\\"hello \\"';
+  const readItems = readCommand(commoand);
+  expect(readItems.at(0)?.object).toBe('"hello "');
+});
+
+it("It can stop quoted stuff from hitting the post read transforms", function () {
+  const command = '"true"';
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.object).toBe("true");
+  expect(readItems.at(0)?.presentationType).toBe(StringPresentationType);
 });

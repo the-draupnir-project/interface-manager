@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describeTranslator } from "../Command/PresentationTypeTranslator";
+import { TextPresentationRenderer } from "./TextPresentationRenderer";
 import {
+  BooleanPresentationType,
   MatrixEventReferencePresentationType,
   MatrixRoomAliasPresentationType,
   MatrixRoomIDPresentationType,
@@ -17,6 +19,14 @@ export const StringFromNumberTranslator = describeTranslator(
   NumberPresentationType,
   function (from) {
     return StringPresentationType.wrap(from.object.toString());
+  }
+);
+
+export const StringfromBooleanTranslator = describeTranslator(
+  StringPresentationType,
+  BooleanPresentationType,
+  function (from) {
+    return StringPresentationType.wrap(TextPresentationRenderer.render(from));
   }
 );
 

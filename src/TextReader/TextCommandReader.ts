@@ -23,6 +23,7 @@ import {
 import { Presentation } from "../Command/Presentation";
 import { Keyword } from "../Command/Keyword";
 import {
+  BooleanPresentationType,
   KeywordPresentationType,
   MatrixEventReferencePresentationType,
   MatrixRoomAliasPresentationType,
@@ -65,6 +66,12 @@ function eatWhitespace(stream: StringStream): void {
   readUntil(/\S/, stream, []);
 }
 
+function readWord(stream: StringStream): string {
+  const word: string[] = [stream.readChar()];
+  readUntil(/\s/, stream, word);
+  return word.join("");
+}
+
 /**
  * Read a single "Item".
  * @param stream Stream to read the item from, must be at the beginning of a word not be EOF or whitespace.
@@ -88,9 +95,7 @@ function readItem(stream: StringStream): Presentation | string {
     return macro(stream);
   } else {
     // Then read a normal word.
-    const word: string[] = [stream.readChar()];
-    readUntil(/\s/, stream, word);
-    return word.join("");
+    return readWord(stream);
   }
 }
 
@@ -233,6 +238,41 @@ defineReadItem(
   }
 );
 
+function maybeReadInteger(
+  stream: StringStream
+): Presentation<number> | undefined {
+  const isNegative = stream.peekChar() === "-";
+  if (isNegative) {
+    stream.readChar();
+  }
+  let word = "";
+  while (stream.peekChar() !== undefined && /^[0-9]$/.test(stream.peekChar())) {
+    const char = stream.readChar();
+    if (char === undefined) {
+      throw new TypeError(
+        "Shouldn't be possible cos we're checking if it's undefined in the loop clause"
+      );
+    }
+    word += char;
+  }
+  const number = isNegative ? -Number.parseInt(word) : Number.parseInt(word);
+  return word.length > 0 ? NumberPresentationType.wrap(number) : undefined;
+}
+
+function readKeywordOrNegativeInteger(
+  stream: StringStream
+): Presentation<Keyword> | Presentation<number> {
+  const maybeInteger = stream.savingPositionIf({
+    predicate: (t) => t === undefined,
+    body: (stream) => maybeReadInteger(stream as StringStream),
+  });
+  if (maybeInteger !== undefined) {
+    return maybeInteger as Presentation<number>;
+  } else {
+    return readKeyword(stream);
+  }
+}
+
 /**
  * Read a keyword frorm the stream, throws away all of the prefixing `[:-]` characters
  * when producing the keyword designator.
@@ -249,8 +289,56 @@ function readKeyword(stream: StringStream): Presentation<Keyword> {
   return KeywordPresentationType.wrap(new Keyword(word.join("")));
 }
 
-defineReadItem("-", readKeyword);
-defineReadItem(":", readKeyword);
+defineReadItem("-", readKeywordOrNegativeInteger);
+defineReadItem(":", readKeywordOrNegativeInteger);
+
+function maybeReadQuotedString(
+  stream: StringStream
+): Presentation<string> | undefined {
+  if (stream.peekChar() !== '"') {
+    return undefined;
+  }
+  stream.readChar();
+  const word: string[] = [];
+  do {
+    readUntil(/"/, stream, word);
+    if (stream.peekChar() === '"' && word.at(-1) === "\\") {
+      word.pop();
+      word.push('"');
+      stream.readChar();
+      if (stream.peekChar() === undefined) {
+        return StringPresentationType.wrap(word.join(""));
+      } else {
+        continue;
+      }
+    } else if (stream.peekChar() === '"') {
+      stream.readChar();
+      // wrap to stop post processing of the string
+      // which is the reason they are quoting in the first place.
+      return StringPresentationType.wrap(word.join(""));
+    } else if (stream.peekChar() === undefined) {
+      // the only reason we don't error here is because we don't have the infrastructure
+      // for how reader errors will work and not look confusing as shit.
+      return undefined;
+    }
+    // eslint-disable-next-line no-constant-condition
+  } while (true);
+}
+
+function readString(stream: StringStream): string | Presentation<string> {
+  const quotedString = stream.savingPositionIf({
+    predicate: (t) => t === undefined,
+    body: (stream) => maybeReadQuotedString(stream as StringStream),
+  });
+  if (quotedString !== undefined) {
+    return quotedString as Presentation<string>;
+  } else {
+    // we want these to be transformable read items.
+    return readWord(stream);
+  }
+}
+
+defineReadItem('"', readString);
 
 definePostReadReplace(/^https:\/\/matrix\.to/, (input) => {
   const parseResult = Permalinks.parseUrl(input);
@@ -284,4 +372,8 @@ definePostReadReplace(/^https:\/\/matrix\.to/, (input) => {
 
 definePostReadReplace(/^[0-9]+$/, (input) => {
   return NumberPresentationType.wrap(Number.parseInt(input));
+});
+
+definePostReadReplace(/^true|false$/, (input) => {
+  return BooleanPresentationType.wrap(input === "true");
 });
