@@ -119,3 +119,16 @@ it("It can read unbalanced quoteds strings", function () {
   expect(readItems.at(0)?.object).toBe('"unbalanced');
   expect(readItems.at(1)?.object).toBe("vronut");
 });
+
+it("It can read escaped quotes meow", function () {
+  const commoand = '"\\"hello \\"';
+  const readItems = readCommand(commoand);
+  expect(readItems.at(0)?.object).toBe('"hello "');
+});
+
+it("It can stop quoted stuff from hitting the post read transforms", function () {
+  const command = '"true"';
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.object).toBe("true");
+  expect(readItems.at(0)?.presentationType).toBe(StringPresentationType);
+});

@@ -292,29 +292,48 @@ function readKeyword(stream: StringStream): Presentation<Keyword> {
 defineReadItem("-", readKeywordOrNegativeInteger);
 defineReadItem(":", readKeywordOrNegativeInteger);
 
-function maybeReadQuotedString(stream: StringStream): string | undefined {
+function maybeReadQuotedString(
+  stream: StringStream
+): Presentation<string> | undefined {
   if (stream.peekChar() !== '"') {
     return undefined;
   }
   stream.readChar();
   const word: string[] = [];
-  readUntil(/"/, stream, word);
-  if (stream.peekChar() === '"') {
-    stream.readChar();
-    return word.join("");
-  } else {
-    return undefined;
-  }
+  do {
+    readUntil(/"/, stream, word);
+    if (stream.peekChar() === '"' && word.at(-1) === "\\") {
+      word.pop();
+      word.push('"');
+      stream.readChar();
+      if (stream.peekChar() === undefined) {
+        return StringPresentationType.wrap(word.join(""));
+      } else {
+        continue;
+      }
+    } else if (stream.peekChar() === '"') {
+      stream.readChar();
+      // wrap to stop post processing of the string
+      // which is the reason they are quoting in the first place.
+      return StringPresentationType.wrap(word.join(""));
+    } else if (stream.peekChar() === undefined) {
+      // the only reason we don't error here is because we don't have the infrastructure
+      // for how reader errors will work and not look confusing as shit.
+      return undefined;
+    }
+    // eslint-disable-next-line no-constant-condition
+  } while (true);
 }
 
-function readString(stream: StringStream): string {
+function readString(stream: StringStream): string | Presentation<string> {
   const quotedString = stream.savingPositionIf({
     predicate: (t) => t === undefined,
     body: (stream) => maybeReadQuotedString(stream as StringStream),
   });
   if (quotedString !== undefined) {
-    return quotedString as string;
+    return quotedString as Presentation<string>;
   } else {
+    // we want these to be transformable read items.
     return readWord(stream);
   }
 }
