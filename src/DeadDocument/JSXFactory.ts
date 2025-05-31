@@ -20,7 +20,7 @@ type LeafNodeProperties = { children?: never[] };
 export namespace DeadDocumentJSX {
   export function JSXFactory(
     tag: NodeTag,
-    properties?: Record<string, string> | undefined,
+    properties?: Record<string, string>,
     ...rawChildren: (DocumentNode | LeafNode | string)[]
   ) {
     const node = makeDocumentNode(tag);

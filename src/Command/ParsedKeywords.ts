@@ -14,7 +14,7 @@ import { Presentation } from "./Presentation";
 export interface ParsedKeywords {
   getKeywordValue<ObjectType = unknown>(
     keyword: string,
-    defaultValue?: ObjectType | undefined
+    defaultValue?: ObjectType
   ): ObjectType | undefined;
 }
 
@@ -67,7 +67,7 @@ export class DirectParsedKeywords<
 
   public getKeywordValue<ObjectType = unknown>(
     keyword: string,
-    defaultValue?: ObjectType | undefined
+    defaultValue?: ObjectType
   ): ObjectType | undefined {
     const keywordDescription = this.description.keywordDescriptions[keyword];
     if (keywordDescription === undefined) {

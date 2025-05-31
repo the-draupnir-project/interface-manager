@@ -171,7 +171,7 @@ export class KeywordParser<TKeywordsMeta extends KeywordsMeta = KeywordsMeta> {
         const textRendering = (() => {
           try {
             return TextPresentationRenderer.render(stream.peekItem());
-          } catch (e) {
+          } catch (_e) {
             return `${JSON.stringify(stream.peekItem()?.object)} (fallback representation)`;
           }
         })();
