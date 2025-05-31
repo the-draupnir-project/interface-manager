@@ -19,7 +19,7 @@
   "scripts": {
     "build": "rm -rf dist && tsc --project tsconfig.json",
     "lint": "eslint src && prettier --check src",
-    "postinstall": "npm run build",
+    "prepare": "npm run build",
     "test": "jest"
   },
   "devDependencies": {
