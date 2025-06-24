@@ -144,7 +144,7 @@ function maybeExtractMarkdownMention(
   clientUserID: StringUserID,
   normalisedPrefix: string
 ): string | undefined {
-  const result = /^\[(\S+)\]\(\S+\)\s*:?\s*/.exec(body);
+  const result = /^\[([^\]]+)\]\([^)]+\)\s*:?\s*/.exec(body);
   if (result === null) {
     return undefined;
   }
