@@ -190,13 +190,6 @@ function readRoomIDOrAlias(
   stream: StringStream
 ): Presentation<MatrixRoomReference> | string {
   const word: string[] = [stream.readChar()];
-  readUntil(/[:\s]/, stream, word);
-  if (
-    stream.peekChar() === undefined ||
-    WHITESPACE.includes(stream.peekChar())
-  ) {
-    return word.join("");
-  }
   readUntil(/\s/, stream, word);
   const wholeWord = word.join("");
   if (isStringRoomID(wholeWord)) {

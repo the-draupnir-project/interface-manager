@@ -15,6 +15,7 @@ import {
 import { readCommand } from "./TextCommandReader";
 import {
   BooleanPresentationType,
+  MatrixRoomIDPresentationType,
   StringPresentationType,
 } from "./TextPresentationTypes";
 import { Keyword } from "../Command/Keyword";
@@ -131,4 +132,10 @@ it("It can stop quoted stuff from hitting the post read transforms", function ()
   const readItems = readCommand(command);
   expect(readItems.at(0)?.object).toBe("true");
   expect(readItems.at(0)?.presentationType).toBe(StringPresentationType);
+});
+
+it("Can read V12 roomID's", function () {
+  const command = "!arfarfarfarfarfarfarfarfarfarfarfarfarfarfa";
+  const readItems = readCommand(command);
+  expect(readItems.at(0)?.presentationType).toBe(MatrixRoomIDPresentationType);
 });
