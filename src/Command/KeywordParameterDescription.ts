@@ -7,7 +7,7 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { Result, Ok, isError } from "@gnuxie/typescript-result";
+import { Result, Ok, isError, getOwn } from "@gnuxie/typescript-result";
 import { TextPresentationRenderer } from "../TextReader/TextPresentationRenderer";
 import { Keyword } from "./Keyword";
 import { ParameterDescription } from "./ParameterDescription";
@@ -122,8 +122,10 @@ export class KeywordParser<TKeywordsMeta extends KeywordsMeta = KeywordsMeta> {
     const stream = partialCommand.stream;
     while (stream.peekItem()?.object instanceof Keyword) {
       const item = stream.readItem() as Presentation<Keyword>;
-      const description =
-        this.description.keywordDescriptions[item.object.designator];
+      const description = getOwn(
+        this.description.keywordDescriptions,
+        item.object.designator
+      );
       if (description === undefined) {
         if (this.description.allowOtherKeys) {
           throw new TypeError("Allow other keys is umimplemented");

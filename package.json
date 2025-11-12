@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@gnuxie/super-cool-stream": "^0.2.1",
-    "@gnuxie/typescript-result": "^1.0.0"
+    "@gnuxie/typescript-result": "^1.1.1"
   },
   "peerDependencies": {
     "@the-draupnir-project/matrix-basic-types": "^1.4.0"
