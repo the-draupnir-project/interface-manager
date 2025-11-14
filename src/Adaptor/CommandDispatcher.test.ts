@@ -24,12 +24,16 @@ test("basic command dispatcher", function () {
   expect(normaliser("My Draupnir bot that is fluffy: ban")).toBe(
     "draupnir ban"
   );
-  expect(normaliser("[@draupnir:example.com](https://whatever) ban")).toBe(
-    "draupnir ban"
-  );
-  expect(normaliser("[@draupnir:example.com](https://whatever): ban")).toBe(
-    "draupnir ban"
-  );
+  expect(
+    normaliser(
+      "[@draupnir:example.com](https://matrix.to/#/@draupnir:example.com) ban"
+    )
+  ).toBe("draupnir ban");
+  expect(
+    normaliser(
+      "[@draupnir:example.com](https://matrix.to/#/@draupnir:example.com): ban"
+    )
+  ).toBe("draupnir ban");
   expect(normaliser("!mjolnir ban")).toBe("draupnir ban");
 });
 

@@ -7,7 +7,7 @@
 // https://github.com/the-draupnir-project/interface-manager
 // </text>
 
-import { Result } from "@gnuxie/typescript-result";
+import { isError, Result } from "@gnuxie/typescript-result";
 import {
   PartialCommand,
   Presentation,
@@ -15,6 +15,7 @@ import {
 } from "../Command";
 import { CommandInvokerCallbacks } from "./CommandInvokerCallbacks";
 import {
+  Permalinks,
   StringUserID,
   userLocalpart,
 } from "@the-draupnir-project/matrix-basic-types";
@@ -144,15 +145,18 @@ function maybeExtractMarkdownMention(
   clientUserID: StringUserID,
   normalisedPrefix: string
 ): string | undefined {
-  const result = /^\[([^\]]+)\]\([^)]+\)\s*:?\s*/.exec(body);
-  if (result === null) {
+  const result = /^\[[^\]]+\]\(([^)]+)\)\s*:?/.exec(body);
+  if (result === null || result[1] === undefined) {
     return undefined;
   }
-  if (result[1] === clientUserID) {
-    return normalisedPrefix + " " + body.slice(result[0].length);
-  } else {
+  const urlResult = Permalinks.parseUrl(result[1]);
+  if (isError(urlResult)) {
     return undefined;
   }
+  if (urlResult.ok.userID !== clientUserID) {
+    return undefined;
+  }
+  return normalisedPrefix + " " + body.slice(result[0].length).trimStart();
 }
 
 export function makeCommandNormaliser(
