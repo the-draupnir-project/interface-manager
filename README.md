@@ -4,6 +4,9 @@ SPDX-FileCopyrightText: 2024 Gnuxie <Gnuxie@protonmail.com>
 SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
+> [!WARNING]
+> @the-draupnir-project/interface-manager now lives in the [Draupnir monorepo](https://github.com/the-draupnir-project/Draupnir/packages/interface-manager)
+
 # @the-draupnir-project/interface-manager
 
 This library provides a command-oriented presentation interface for
